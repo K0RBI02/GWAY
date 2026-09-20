@@ -1,8 +1,9 @@
 FROM python:3.12-alpine
 
-# Build-Tools nur für den Fall, dass eine Abhängigkeit kein fertiges ARM-Wheel hat
+# Build tools are only needed if a dependency has no prebuilt ARM wheel
+COPY requirements.txt /tmp/requirements.txt
 RUN apk add --no-cache --virtual .build gcc musl-dev libffi-dev \
- && pip install --no-cache-dir tplinkrouterc6u \
+ && pip install --no-cache-dir -r /tmp/requirements.txt \
  && apk del .build
 
 WORKDIR /app

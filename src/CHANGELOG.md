@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+- Settings panel (gear icon next to the model name): language (German/English), RSRP as number or rating (good/fair/poor), optional experimental SNR display
+- The interface is available in English and German; the default follows the browser language
+- The `tplinkrouterc6u` library is now pinned in `requirements.txt` for reproducible builds
+- Home Assistant watchdog: the add-on is restarted automatically if the web interface stops responding
+- Dependabot now watches the Docker base image, the Python dependency and GitHub Actions
+- Lint workflow: add-on linter, Python syntax check and Docker build on every push
+- Remaining German texts in code and documentation translated to English
+
 ## 0.3.0
 - Project is now called GWAY (directory structure: add-on is located in `src/`)
 - Available as an add-on repository: installation via repository URL, updates directly in the add-on store

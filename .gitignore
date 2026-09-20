@@ -3,7 +3,7 @@ __pycache__/
 .DS_Store
 *.zip
 firewall_probe.txt
-# Nie einchecken: Skripte mit Passwörtern
+# Never commit scripts that may contain passwords
 test_*.py
 probe_*.py
 debug_*.py

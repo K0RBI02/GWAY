@@ -8,6 +8,7 @@ Actions (Wi-Fi band, reboot) use the same session.
 
 import json
 import os
+from importlib.metadata import version as pkg_version
 import signal
 import threading
 import time
@@ -160,7 +161,7 @@ class Poller(threading.Thread):
             if action == "wifi":
                 band = BANDS.get(body.get("band"))
                 if band is None:
-                    raise ValueError("Unbekanntes WLAN-Band")
+                    raise ValueError("Unknown Wi-Fi band")
                 if self.client is None:
                     self.connect()
                 self.client.set_wifi(band, bool(body.get("enable")))
@@ -172,9 +173,9 @@ class Poller(threading.Thread):
                 self.drop()
                 self.paused_until = time.time() + 120
                 with self.lock:
-                    self.state = {**self.state, "ok": False, "kind": "reboot", "error": "Router startet neu, das dauert etwa 2 Minuten"}
+                    self.state = {**self.state, "ok": False, "kind": "reboot", "error": "Router is restarting, this takes about 2 minutes"}
             else:
-                raise ValueError("Unbekannte Aktion")
+                raise ValueError("Unknown action")
 
     def run(self):
         interval = max(4, int(self.opts.get("poll_seconds", 8)))
@@ -213,12 +214,12 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/", "/index.html"):
             self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
         else:
-            self._send(404, b"Nicht gefunden", "text/plain; charset=utf-8")
+            self._send(404, b"Not found", "text/plain; charset=utf-8")
 
     def do_POST(self):
         # This header forces a CORS preflight; external websites cannot trigger actions.
         if self.path != "/api/action" or self.headers.get("X-Requested-With") != "router-ui":
-            return self._send(403, b'{"error":"Nicht erlaubt"}')
+            return self._send(403, b'{"error":"Not allowed"}')
         try:
             n = int(self.headers.get("Content-Length") or 0)
             poller.act(json.loads(self.rfile.read(n) or b"{}"))
@@ -235,7 +236,7 @@ def main():
     global poller
     opts = load_options()
     if not opts.get("router_host") or not opts.get("router_password"):
-        print("FEHLER: router_host und router_password in der Add-on-Konfiguration eintragen.", flush=True)
+        print("ERROR: set router_host and router_password in the add-on configuration.", flush=True)
     poller = Poller(opts)
     poller.start()
 
@@ -247,7 +248,11 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    print(f"GWAY läuft auf Port {PORT}", flush=True)
+    try:
+        print(f"tplinkrouterc6u {pkg_version('tplinkrouterc6u')}", flush=True)
+    except Exception:
+        pass
+    print(f"GWAY is running on port {PORT}", flush=True)
     try:
         server.serve_forever()
     finally:

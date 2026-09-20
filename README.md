@@ -11,6 +11,7 @@ A lightweight, private web UI for the TP-Link Archer NX500 (5G router) as a Home
 - Device list and static IP assignments
 - Toggle Wi-Fi bands and reboot the router
 - Light and dark mode, including mobile support
+- Settings (gear icon): language (English/German), RSRP as number or rating, optional experimental SNR display
 
 ## Installation
 
@@ -31,3 +32,4 @@ This interface has no login. It is intended for local home use only; do not expo
 - Unofficial and not affiliated with TP-Link. Router access uses [`tplinkrouterc6u`](https://github.com/AlexandrErohin/TP-Link-Archer-C6U).
 - Tested only with the Archer NX500. Other models may require a different client class.
 - The router allows only one admin session at a time.
+- The interface is available in English and German. The default follows your browser language; change it in the settings.
