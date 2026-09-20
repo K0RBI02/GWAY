@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+- Fixed the add-on linter findings: removed the default values `boot` and `startup` from `config.yaml`
+- Replaced the obsolete `watchdog` option with a native Docker `HEALTHCHECK`
+
 ## 0.4.0
 - Settings panel (gear icon next to the model name): language (German/English), RSRP as number or rating (good/fair/poor), optional experimental SNR display
 - The interface is available in English and German; the default follows the browser language

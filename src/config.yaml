@@ -1,5 +1,5 @@
 name: "GWAY"
-version: "0.4.0"
+version: "0.4.1"
 slug: gway
 description: "GWAY: custom web interface for the TP-Link Archer NX500"
 url: "https://github.com/K0RBI02/GWAY"
@@ -7,9 +7,6 @@ arch:
   - aarch64
   - amd64
 init: false
-startup: application
-boot: auto
-watchdog: "http://[HOST]:[PORT:8480]/api/state"
 ports:
   8480/tcp: 8480
 ports_description:
