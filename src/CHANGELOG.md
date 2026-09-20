@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+- Mobile: content that scrolls under the collapsed traffic bar no longer shows up again in the gap above it
+
 ## 0.5.0
 - Mobile: the Wi-Fi switches and the restart button moved into the settings panel on small screens, so the traffic card starts higher
 - Graph: fixed scale (as on the desktop layout). A narrower graph, such as the collapsed bar on phones, shows fewer samples instead of squeezing everything; the maximum is 90 samples (about 12 minutes)
