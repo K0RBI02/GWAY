@@ -162,12 +162,14 @@ class Poller(threading.Thread):
         action = body.get("action")
         with self.io:
             if action == "wifi":
-                band = BANDS.get(body.get("band"))
-                if band is None:
+                names = body.get("bands") or [body.get("band")]  # one band or several at once
+                targets = [BANDS.get(n) for n in names]
+                if any(t is None for t in targets):
                     raise ValueError("Unknown Wi-Fi band")
                 if self.client is None:
                     self.connect()
-                self.client.set_wifi(band, bool(body.get("enable")))
+                for band in targets:
+                    self.client.set_wifi(band, bool(body.get("enable")))
                 self.poll()
             elif action == "reboot":
                 if self.client is None:

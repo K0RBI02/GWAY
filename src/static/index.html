@@ -33,6 +33,13 @@ button:disabled{opacity:.5;cursor:default}
 button[aria-pressed="true"] b{background:var(--mint)}
 button b{font-weight:500;border:1.5px solid var(--ink);border-radius:999px;padding:0 10px;font-size:14px;background:var(--peach)}
 button.danger{background:var(--peach);border-style:solid}
+#wifiSimple,#wifiBands{display:flex;flex-direction:column;gap:10px}
+button[aria-pressed="mixed"] b{background:var(--sky)}
+.wrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px 6px 14px;border:1.5px dashed var(--line);border-radius:12px}
+.wrow>span:first-child{white-space:nowrap}
+.chips{display:inline-flex;gap:6px}
+button.chip{white-space:nowrap;border:1.5px dashed var(--line);border-radius:999px;padding:0 10px;font-size:14px;line-height:24px;justify-content:center;color:var(--muted)}
+button.chip[aria-pressed="true"]{border:1.5px solid var(--ink);background:var(--mint);color:var(--ink)}
 
 /* Settings: gear button next to the model name, panel below the facts */
 button.icon{width:34px;height:34px;padding:0;justify-content:center;color:var(--muted);flex:none}
@@ -46,7 +53,7 @@ button.icon[aria-expanded="true"]{border-style:solid;color:var(--ink)}
 .seg button{border:0;border-radius:999px;padding:0 10px;font-size:14px;line-height:24px;justify-content:center}
 .seg button[aria-pressed="true"]{background:var(--sky)}
 /* Touch: invisible, slightly larger hit areas (the look stays the same) */
-@media (pointer:coarse){button.icon,.seg button{position:relative}button.icon::after{content:"";position:absolute;inset:-5px}.seg button::after{content:"";position:absolute;inset:-8px 0}}
+@media (pointer:coarse){button.icon,.seg button,button.chip{position:relative}button.icon::after{content:"";position:absolute;inset:-5px}.seg button::after,button.chip::after{content:"";position:absolute;inset:-8px 0}}
 
 /* Veil: everything is cut off above the top edge of the model row */
 .minihost{position:sticky;top:40px;height:0;z-index:6}
@@ -119,14 +126,22 @@ th:first-child,td:first-child{width:100%;max-width:0}
         <button type="button" data-set="rsrp" data-val="value" data-t="rsrpNum">Number</button><button type="button" data-set="rsrp" data-val="rating" data-t="rsrpRate">Rating</button></span></dd></div>
       <div><dt><span data-t="setSnr">Show SNR</span><svg class="xp" viewBox="0 0 24 24" role="img" data-t-aria="snrHint" data-t-title="snrHint"><path d="M9 3h6M10 3v6.2L4.8 18.3A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.7L14 9.2V3M7.5 14.5h9"/></svg></dt><dd><span class="seg" role="group" data-t-aria="setSnr">
         <button type="button" data-set="snr" data-val="off" data-t="segOff">Off</button><button type="button" data-set="snr" data-val="on" data-t="segOn">On</button></span></dd></div>
+      <div><dt data-t="setWifi">Wi-Fi switches</dt><dd><span class="seg" role="group" data-t-aria="setWifi">
+        <button type="button" data-set="wifi" data-val="simple" data-t="wifiSimple">Simple</button><button type="button" data-set="wifi" data-val="bands" data-t="wifiBands">Per band</button></span></dd></div>
     </dl>
     <div id="actionsSlot"></div>
     </div>
     <div class="actions">
-      <button id="w2" type="button" aria-pressed="false"><span data-t="wifi24">Wi-Fi 2.4 GHz</span><b>–</b></button>
-      <button id="w5" type="button" aria-pressed="false"><span data-t="wifi5">Wi-Fi 5 GHz</span><b>–</b></button>
-      <button id="g2" type="button" aria-pressed="false" hidden><span data-t="guest24">Guest Wi-Fi 2.4 GHz</span><b>–</b></button>
-      <button id="g5" type="button" aria-pressed="false" hidden><span data-t="guest5">Guest Wi-Fi 5 GHz</span><b>–</b></button>
+      <div id="wifiSimple">
+        <button id="sWifi" type="button" aria-pressed="false" hidden><span data-t="wifiAll">Wi-Fi</span><b>–</b></button>
+        <button id="sGuest" type="button" aria-pressed="false" hidden><span data-t="guestAll">Guest Wi-Fi</span><b>–</b></button>
+      </div>
+      <div id="wifiBands" hidden>
+        <div class="wrow"><span data-t="rowWifi">Wi-Fi</span><span class="chips">
+          <button id="w2" class="chip" type="button" aria-pressed="false" data-t="ghz24">2.4 GHz</button><button id="w5" class="chip" type="button" aria-pressed="false" data-t="ghz5">5 GHz</button></span></div>
+        <div class="wrow" id="guestRow" hidden><span data-t="rowGuest">Guest</span><span class="chips">
+          <button id="g2" class="chip" type="button" aria-pressed="false" data-t="ghz24">2.4 GHz</button><button id="g5" class="chip" type="button" aria-pressed="false" data-t="ghz5">5 GHz</button></span></div>
+      </div>
       <button id="reboot" type="button" class="danger"><span data-t="reboot">Restart router</span></button>
     </div>
   </aside>
@@ -177,10 +192,11 @@ const $$ = s => [...document.querySelectorAll(s)];
 let data = null;
 
 /* ---------- Settings (stored in this browser only) ---------- */
-const S = {lang: (navigator.language || "").toLowerCase().startsWith("de") ? "de" : "en", rsrp: "value", snr: false};
+const S = {lang: (navigator.language || "").toLowerCase().startsWith("de") ? "de" : "en", rsrp: "value", snr: false, wifi: "simple"};
 try { Object.assign(S, JSON.parse(localStorage.getItem("gway") || "{}")); } catch {}
 if (!["de", "en"].includes(S.lang)) S.lang = "en";
 if (!["value", "rating"].includes(S.rsrp)) S.rsrp = "value";
+if (!["simple", "bands"].includes(S.wifi)) S.wifi = "simple";
 S.snr = S.snr === true;
 const saveS = () => { try { localStorage.setItem("gway", JSON.stringify(S)); } catch {} };
 
@@ -199,7 +215,8 @@ const I = {
     setSnr: "SNR anzeigen", snrHint: "Experimentell: Rohwert des Routers geteilt durch 10, noch nicht bestätigt", segOff: "Aus", segOn: "An",
     fw: "Firmware", wan: "WAN-IP", net: "Netz", isp: "Anbieter", rsrp: "Empfang RSRP", snr: "Rauschabstand SNR",
     good: "gut", fair: "mittel", poor: "schlecht",
-    wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", guest24: "Gast-WLAN 2,4 GHz", guest5: "Gast-WLAN 5 GHz", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
+    wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", guest24: "Gast-WLAN 2,4 GHz", guest5: "Gast-WLAN 5 GHz", wifiAll: "WLAN", guestAll: "Gast-WLAN", rowWifi: "WLAN", rowGuest: "Gast",
+    ghz24: "2,4 GHz", ghz5: "5 GHz", pillMixed: "teils", setWifi: "WLAN-Schalter", wifiSimple: "Einfach", wifiBands: "Pro Band", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
     pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
     trafficAria: "Internet-Traffic", sparkAria: "Verlauf der letzten Minuten",
     overview: "Übersicht", devConnected: "Geräte verbunden", devSub: (w, wl, g) => `Geräte: ${w} Kabel, ${wl} WLAN, ${g} Gast`,
@@ -227,7 +244,8 @@ const I = {
     setSnr: "Show SNR", snrHint: "Experimental: the router's raw value divided by 10, not yet confirmed", segOff: "Off", segOn: "On",
     fw: "Firmware", wan: "WAN IP", net: "Network", isp: "Provider", rsrp: "Signal RSRP", snr: "Signal-to-noise SNR",
     good: "good", fair: "fair", poor: "poor",
-    wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", guest24: "Guest Wi-Fi 2.4 GHz", guest5: "Guest Wi-Fi 5 GHz", copied: "Copied", copyFailed: "Copy failed",
+    wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", guest24: "Guest Wi-Fi 2.4 GHz", guest5: "Guest Wi-Fi 5 GHz", wifiAll: "Wi-Fi", guestAll: "Guest Wi-Fi", rowWifi: "Wi-Fi", rowGuest: "Guest",
+    ghz24: "2.4 GHz", ghz5: "5 GHz", pillMixed: "partial", setWifi: "Wi-Fi switches", wifiSimple: "Simple", wifiBands: "Per band", copied: "Copied", copyFailed: "Copy failed",
     pillOn: "on", pillOff: "off", reboot: "Restart router",
     trafficAria: "Internet traffic", sparkAria: "History of the last minutes",
     overview: "Overview", devConnected: "Devices connected", devSub: (w, wl, g) => `Devices: ${w} wired, ${wl} Wi-Fi, ${g} guest`,
@@ -288,10 +306,21 @@ function facts(d) {
   }));
 }
 
+// State of a group of bands: "true" (all on), "false" (all off), "mixed", or null (router does not report them)
+const bandState = list => { const v = list.filter(x => x != null); return !v.length ? null : v.every(Boolean) ? "true" : v.some(Boolean) ? "mixed" : "false"; };
+
 function bands(o) {
+  // per-band chips
   [["#w2", o.wifi_2g], ["#w5", o.wifi_5g], ["#g2", o.guest_wifi_2g], ["#g5", o.guest_wifi_5g]].forEach(([id, on]) => {
     const b = $(id); b.hidden = on == null; b.setAttribute("aria-pressed", on ? "true" : "false");
-    b.querySelector("b").textContent = on ? t("pillOn") : t("pillOff");
+  });
+  $("#guestRow").hidden = o.guest_wifi_2g == null && o.guest_wifi_5g == null;
+  // combined switches (default view)
+  [["#sWifi", bandState([o.wifi_2g, o.wifi_5g])], ["#sGuest", bandState([o.guest_wifi_2g, o.guest_wifi_5g])]].forEach(([id, st]) => {
+    const b = $(id); b.hidden = st == null;
+    if (st == null) return;
+    b.setAttribute("aria-pressed", st);
+    b.querySelector("b").textContent = st === "true" ? t("pillOn") : st === "false" ? t("pillOff") : t("pillMixed");
   });
 }
 
@@ -445,6 +474,19 @@ function toggleBand(id, band, key) {
     if (confirm(on ? t("confirmOff", label) : t("confirmOn", label))) act({action: "wifi", band, enable: !on}, $(id));
   });
 }
+const OV = {"2g": "wifi_2g", "5g": "wifi_5g", guest2g: "guest_wifi_2g", guest5g: "guest_wifi_5g"};
+// Combined switch: turns all reported bands of the group on (if off or mixed) or off (if all on)
+function toggleGroup(id, list, key) {
+  $(id).addEventListener("click", () => {
+    const o = data?.overview;
+    const present = o ? list.filter(b => o[OV[b]] != null) : [];
+    if (!present.length) return;
+    const turnOn = $(id).getAttribute("aria-pressed") !== "true", label = t(key);
+    if (confirm(turnOn ? t("confirmOn", label) : t("confirmOff", label))) act({action: "wifi", bands: present, enable: turnOn}, $(id));
+  });
+}
+toggleGroup("#sWifi", ["2g", "5g"], "wifiAll");
+toggleGroup("#sGuest", ["guest2g", "guest5g"], "guestAll");
 toggleBand("#w2", "2g", "wifi24");
 toggleBand("#w5", "5g", "wifi5");
 toggleBand("#g2", "guest2g", "guest24");
@@ -500,6 +542,8 @@ function applyLang() {
     const cur = b.dataset.set === "snr" ? (S.snr ? "on" : "off") : S[b.dataset.set];
     b.setAttribute("aria-pressed", String(cur === b.dataset.val));
   });
+  $("#wifiSimple").hidden = S.wifi !== "simple";
+  $("#wifiBands").hidden = S.wifi !== "bands";
   if (data) render(data);
   else {
     $("#statustext").textContent = t("connecting"); $("#model").textContent = t("router");

@@ -17,7 +17,7 @@ The port can be changed under *Network*.
 - Live download/upload traffic and history
 - Connected devices, CPU, memory and 5G signal details
 - Device list and DHCP reservations
-- Toggle 2.4/5 GHz Wi-Fi (including guest Wi-Fi, if the router reports it) and restart the router
+- Toggle Wi-Fi and guest Wi-Fi (if the router reports it) and restart the router
 - Click an IP or MAC address to copy it
 
 ## Settings
@@ -26,6 +26,7 @@ Click the gear icon next to the model name:
 
 - **Language:** German or English (default: browser language)
 - **RSRP display:** show the value in dBm or a rating (good / fair / poor)
+- **Wi-Fi switches:** *Simple* shows one switch for Wi-Fi and one for guest Wi-Fi (both bands together, "partial" if only one band is on). *Per band* shows separate 2.4 GHz and 5 GHz switches.
 - **Show SNR (experimental):** shows the SNR value. The router reports it as a whole number (probably tenths of a dB), so GWAY divides it by 10. This is not confirmed yet.
 
 Settings are stored in your browser, not in the add-on.

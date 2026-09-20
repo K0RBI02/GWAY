@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4
+- Wi-Fi switches are more compact: by default there is one switch for Wi-Fi and one for guest Wi-Fi (both bands together; "partial" if only one band is on)
+- New setting "Wi-Fi switches: Simple / Per band" shows the individual 2.4 and 5 GHz switches as compact chips
+
 ## 0.5.3
 - Favicon: the add-on icon is now shown in the browser tab
 - Click an IP or MAC address in the tables to copy it (also works over plain http)
