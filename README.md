@@ -31,7 +31,3 @@ Die Oberfläche hat keinen Login. Sie ist nur für das Heimnetz gedacht, den Por
 - Inoffiziell und nicht mit TP-Link verbunden. Der Router-Zugriff läuft über die Bibliothek [`tplinkrouterc6u`](https://github.com/AlexandrErohin/TP-Link-Archer-C6U).
 - Getestet nur mit dem Archer NX500. Andere Modelle brauchen evtl. eine andere Client-Klasse der Bibliothek.
 - Der Router lässt nur eine Admin-Session gleichzeitig zu.
-
-## Entstehung
-
-Entstanden in Zusammenarbeit mit Claude (Anthropic).
