@@ -17,7 +17,8 @@ The port can be changed under *Network*.
 - Live download/upload traffic and history
 - Connected devices, CPU, memory and 5G signal details
 - Device list and DHCP reservations
-- Toggle 2.4/5 GHz Wi-Fi and restart the router
+- Toggle 2.4/5 GHz Wi-Fi (including guest Wi-Fi, if the router reports it) and restart the router
+- Click an IP or MAC address to copy it
 
 ## Settings
 

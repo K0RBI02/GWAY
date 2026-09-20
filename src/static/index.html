@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#EEF2F8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0D1220" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <title>GWAY</title>
 <style>
 :root{color-scheme:light dark;--paper:#EEF2F8;--ink:#1F2A44;--muted:#5B6782;--peach:#F7C9B6;--sky:#BFD6F2;--mint:#BFE3CF;--line:rgba(31,42,68,.3)}
@@ -38,7 +40,7 @@ button.icon svg,.xp{width:20px;height:20px;fill:none;stroke:currentColor;stroke-
 button.icon[aria-expanded="true"]{border-style:solid;color:var(--ink)}
 #settings{margin-top:20px}
 #actionsSlot .actions{margin-top:16px}
-#settings[hidden]{display:none}
+[hidden]{display:none!important}
 .xp{width:16px;height:16px;vertical-align:-3px;margin-left:6px}
 .seg{display:inline-flex;gap:2px;border:1.5px dashed var(--line);border-radius:999px;padding:2px}
 .seg button{border:0;border-radius:999px;padding:0 10px;font-size:14px;line-height:24px;justify-content:center}
@@ -75,6 +77,10 @@ button.icon[aria-expanded="true"]{border-style:solid;color:var(--ink)}
   width:calc((100% - 56px) * (1 - var(--p,0)) + var(--wc) * var(--p,0))}
 .tip{position:fixed;z-index:20;display:none;pointer-events:none;background:var(--paper);color:var(--ink);border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;font-size:13px;line-height:1.35;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tip small{display:block;color:var(--muted);font-size:12px}
+button.cp{all:unset;cursor:pointer;white-space:nowrap;border-bottom:1.5px dashed transparent}
+button.cp:hover,button.cp:focus-visible{border-bottom-color:var(--line)}
+button.cp:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:30;background:var(--paper);color:var(--ink);border:1.5px dashed var(--line);border-radius:12px;padding:8px 16px;font-size:14px;white-space:nowrap;pointer-events:none}
 
 .stats{display:grid;grid-template-columns:repeat(3,1fr)}
 .stats div{padding:4px 20px;border-left:1.5px dashed var(--line)}
@@ -119,6 +125,8 @@ th:first-child,td:first-child{width:100%;max-width:0}
     <div class="actions">
       <button id="w2" type="button" aria-pressed="false"><span data-t="wifi24">Wi-Fi 2.4 GHz</span><b>–</b></button>
       <button id="w5" type="button" aria-pressed="false"><span data-t="wifi5">Wi-Fi 5 GHz</span><b>–</b></button>
+      <button id="g2" type="button" aria-pressed="false" hidden><span data-t="guest24">Guest Wi-Fi 2.4 GHz</span><b>–</b></button>
+      <button id="g5" type="button" aria-pressed="false" hidden><span data-t="guest5">Guest Wi-Fi 5 GHz</span><b>–</b></button>
       <button id="reboot" type="button" class="danger"><span data-t="reboot">Restart router</span></button>
     </div>
   </aside>
@@ -162,6 +170,7 @@ th:first-child,td:first-child{width:100%;max-width:0}
   </main>
 </div>
 <div class="tip" id="tip" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -190,7 +199,8 @@ const I = {
     setSnr: "SNR anzeigen", snrHint: "Experimentell: Rohwert des Routers geteilt durch 10, noch nicht bestätigt", segOff: "Aus", segOn: "An",
     fw: "Firmware", wan: "WAN-IP", net: "Netz", isp: "Anbieter", rsrp: "Empfang RSRP", snr: "Rauschabstand SNR",
     good: "gut", fair: "mittel", poor: "schlecht",
-    wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
+    wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", guest24: "Gast-WLAN 2,4 GHz", guest5: "Gast-WLAN 5 GHz", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
+    pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
     trafficAria: "Internet-Traffic", sparkAria: "Verlauf der letzten Minuten",
     overview: "Übersicht", devConnected: "Geräte verbunden", devSub: (w, wl, g) => `Geräte: ${w} Kabel, ${wl} WLAN, ${g} Gast`,
     cpu: "CPU-Auslastung", mem: "Arbeitsspeicher",
@@ -217,7 +227,8 @@ const I = {
     setSnr: "Show SNR", snrHint: "Experimental: the router's raw value divided by 10, not yet confirmed", segOff: "Off", segOn: "On",
     fw: "Firmware", wan: "WAN IP", net: "Network", isp: "Provider", rsrp: "Signal RSRP", snr: "Signal-to-noise SNR",
     good: "good", fair: "fair", poor: "poor",
-    wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", pillOn: "on", pillOff: "off", reboot: "Restart router",
+    wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", guest24: "Guest Wi-Fi 2.4 GHz", guest5: "Guest Wi-Fi 5 GHz", copied: "Copied", copyFailed: "Copy failed",
+    pillOn: "on", pillOff: "off", reboot: "Restart router",
     trafficAria: "Internet traffic", sparkAria: "History of the last minutes",
     overview: "Overview", devConnected: "Devices connected", devSub: (w, wl, g) => `Devices: ${w} wired, ${wl} Wi-Fi, ${g} guest`,
     cpu: "CPU usage", mem: "Memory",
@@ -246,12 +257,13 @@ const rating = v => v == null ? "–" : v >= -90 ? t("good") : v >= -100 ? t("fa
 const ERR = {unreachable: "e_unreachable", auth: "e_auth", session: "e_session", other: "e_other", reboot: "e_reboot", starting: "connecting"};
 const friendly = d => t(ERR[d.kind] || "e_other");
 
-function tableRows(tbody, list) {
+function tableRows(tbody, list, copyCols = []) {
   tbody.replaceChildren(...list.map(cells => {
     const tr = document.createElement("tr");
     cells.forEach((c, i) => {
       const td = document.createElement("td");
       if (i === 0) { const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = c; td.append(nm); }
+      else if (copyCols.includes(i)) { const b = document.createElement("button"); b.type = "button"; b.className = "cp"; b.textContent = c; td.append(b); }
       else td.textContent = c;
       tr.append(td);
     });
@@ -277,8 +289,8 @@ function facts(d) {
 }
 
 function bands(o) {
-  [["#w2", o.wifi_2g], ["#w5", o.wifi_5g]].forEach(([id, on]) => {
-    const b = $(id); b.setAttribute("aria-pressed", on ? "true" : "false");
+  [["#w2", o.wifi_2g], ["#w5", o.wifi_5g], ["#g2", o.guest_wifi_2g], ["#g5", o.guest_wifi_5g]].forEach(([id, on]) => {
+    const b = $(id); b.hidden = on == null; b.setAttribute("aria-pressed", on ? "true" : "false");
     b.querySelector("b").textContent = on ? t("pillOn") : t("pillOff");
   });
 }
@@ -380,7 +392,7 @@ function devices() {
   const q = $("#q").value.trim().toLowerCase();
   const list = (data?.devices || []).filter(d => !q || [d.name, d.ip, d.mac].some(x => x.toLowerCase().includes(q)))
     .sort((a, b) => ipKey(a.ip) - ipKey(b.ip));
-  tableRows($("#rows"), list.map(d => [d.name || t("unnamed"), d.ip, d.mac, I[S.lang].conn[d.type] || d.type]));
+  tableRows($("#rows"), list.map(d => [d.name || t("unnamed"), d.ip, d.mac, I[S.lang].conn[d.type] || d.type]), [1, 2]);
 }
 
 function reservations() {
@@ -392,7 +404,7 @@ function reservations() {
     const d = online.get(norm(r.mac)) || online.get(r.ip);
     return d ? d.name || t("unnamed") : t("offline");
   };
-  tableRows($("#resvrows"), list.map(r => [nameOf(r), r.ip, r.mac, r.enabled ? t("active") : t("pillOff")]));
+  tableRows($("#resvrows"), list.map(r => [nameOf(r), r.ip, r.mac, r.enabled ? t("active") : t("pillOff")]), [1, 2]);
   $("#resvempty").hidden = list.length > 0;
 }
 
@@ -435,10 +447,36 @@ function toggleBand(id, band, key) {
 }
 toggleBand("#w2", "2g", "wifi24");
 toggleBand("#w5", "5g", "wifi5");
+toggleBand("#g2", "guest2g", "guest24");
+toggleBand("#g5", "guest5g", "guest5");
 $("#reboot").addEventListener("click", () => {
   if (confirm(t("confirmReboot"))) act({action: "reboot"}, $("#reboot"));
 });
 $("#q").addEventListener("input", devices);
+
+/* ---------- Copy IP / MAC on click ---------- */
+// navigator.clipboard only exists on secure origins (https/localhost); the add-on usually runs on plain http, so fall back to execCommand.
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+  document.body.append(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  ta.remove();
+  return ok;
+}
+let toastTimer;
+function toast(msg) {
+  const el = $("#toast"); el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 1600);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button.cp");
+  if (!b) return;
+  const text = b.textContent;
+  toast(await copyText(text) ? `${t("copied")}: ${text}` : t("copyFailed"));
+});
 
 /* ---------- Settings panel ---------- */
 $("#gear").addEventListener("click", () => {

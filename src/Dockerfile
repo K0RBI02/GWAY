@@ -8,6 +8,7 @@ RUN apk add --no-cache --virtual .build gcc musl-dev libffi-dev \
 
 WORKDIR /app
 COPY server.py /app/server.py
+COPY icon.png /app/icon.png
 COPY static /app/static
 
 # Health check: Home Assistant uses the container health status instead of the obsolete "watchdog" option

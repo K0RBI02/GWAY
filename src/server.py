@@ -25,7 +25,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 PORT = 8480  # Container port; the host port is defined in config.yaml
 STATIC = Path(__file__).parent / "static"
-BANDS = {"2g": Connection.HOST_2G, "5g": Connection.HOST_5G}
+ICON = Path(__file__).parent / "icon.png"
+BANDS = {"2g": Connection.HOST_2G, "5g": Connection.HOST_5G, "guest2g": Connection.GUEST_2G, "guest5g": Connection.GUEST_5G}
 DHCP_EVERY = 60  # Seconds between DHCP queries
 
 
@@ -132,6 +133,8 @@ class Poller(threading.Thread):
                 "wan_ip": str(st.wan_ipv4_addr),
                 "wifi_2g": st.wifi_2g_enable,
                 "wifi_5g": st.wifi_5g_enable,
+                "guest_wifi_2g": st.guest_2g_enable,
+                "guest_wifi_5g": st.guest_5g_enable,
             },
             "lte": {
                 "network": lte.network_type_info,
@@ -199,11 +202,11 @@ poller = None
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, code, body, ctype="application/json"):
+    def _send(self, code, body, ctype="application/json", cache="no-store"):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache)
         self.end_headers()
         self.wfile.write(body)
 
@@ -213,6 +216,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps(poller.snapshot()).encode())
         elif path in ("/", "/index.html"):
             self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
+        elif path in ("/icon.png", "/favicon.ico") and ICON.exists():
+            self._send(200, ICON.read_bytes(), "image/png", "max-age=86400")
         else:
             self._send(404, b"Not found", "text/plain; charset=utf-8")
 

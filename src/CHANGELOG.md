@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+- Favicon: the add-on icon is now shown in the browser tab
+- Click an IP or MAC address in the tables to copy it (also works over plain http)
+- Guest Wi-Fi switches for 2.4 and 5 GHz (only shown if the router reports them)
+- README screenshot updated (English, light, dark and mobile)
+
 ## 0.5.2
 - Dark mode: darker background, teal green and wine red accents instead of the previous green and brown-orange
 - Dark mode: better contrast for the grey text on the traffic card

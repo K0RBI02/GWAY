@@ -9,7 +9,8 @@ A lightweight, private web UI for the TP-Link Archer NX500 (5G router) as a Home
 - Live traffic with history, hover details, and averages
 - Overview of connected devices, CPU, memory, and 5G signal
 - Device list and static IP assignments
-- Toggle Wi-Fi bands and reboot the router
+- Toggle Wi-Fi bands (including guest Wi-Fi) and reboot the router
+- Click an IP or MAC address to copy it
 - Light and dark mode, including mobile support
 - Settings (gear icon): language (English/German), RSRP as number or rating, optional experimental SNR display
 
