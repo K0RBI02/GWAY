@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+- Mobile: the Wi-Fi switches and the restart button moved into the settings panel on small screens, so the traffic card starts higher
+- Graph: fixed scale (as on the desktop layout). A narrower graph, such as the collapsed bar on phones, shows fewer samples instead of squeezing everything; the maximum is 90 samples (about 12 minutes)
+- Mobile: the three overview tiles fit in one row
+- Touch: slightly larger, invisible hit areas for the gear icon and the settings toggles
+
 ## 0.4.2
 - SNR (experimental) is now shown with one decimal place: the router reports it as a whole number (e.g. 105), which is treated as tenths of a dB (10.5 dB)
 
