@@ -25,7 +25,7 @@ Click the gear icon next to the model name:
 
 - **Language:** German or English (default: browser language)
 - **RSRP display:** show the value in dBm or a rating (good / fair / poor)
-- **Show SNR (experimental):** shows the SNR value. The router may report it in a different unit than dB, so treat it with care.
+- **Show SNR (experimental):** shows the SNR value. The router reports it as a whole number (probably tenths of a dB), so GWAY divides it by 10. This is not confirmed yet.
 
 Settings are stored in your browser, not in the add-on.
 

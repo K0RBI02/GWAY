@@ -179,7 +179,7 @@ const I = {
     e_addon: "Keine Verbindung zum Add-on. Läuft es in Home Assistant?",
     lastUpdate: (time, err) => `Letzter Stand von ${time}. Technisch: ${err || "-"}`,
     settings: "Einstellungen", setLang: "Sprache", setRsrp: "RSRP", rsrpNum: "Zahl", rsrpRate: "Bewertung",
-    setSnr: "SNR anzeigen", snrHint: "Experimentell: Der Wert ist evtl. nicht in dB", segOff: "Aus", segOn: "An",
+    setSnr: "SNR anzeigen", snrHint: "Experimentell: Rohwert des Routers geteilt durch 10, noch nicht bestätigt", segOff: "Aus", segOn: "An",
     fw: "Firmware", wan: "WAN-IP", net: "Netz", isp: "Anbieter", rsrp: "Empfang RSRP", snr: "Rauschabstand SNR",
     good: "gut", fair: "mittel", poor: "schlecht",
     wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
@@ -206,7 +206,7 @@ const I = {
     e_addon: "Cannot reach the add-on. Is it running in Home Assistant?",
     lastUpdate: (time, err) => `Last update at ${time}. Technical: ${err || "-"}`,
     settings: "Settings", setLang: "Language", setRsrp: "RSRP", rsrpNum: "Number", rsrpRate: "Rating",
-    setSnr: "Show SNR", snrHint: "Experimental: the value may not be in dB", segOff: "Off", segOn: "On",
+    setSnr: "Show SNR", snrHint: "Experimental: the router's raw value divided by 10, not yet confirmed", segOff: "Off", segOn: "On",
     fw: "Firmware", wan: "WAN IP", net: "Network", isp: "Provider", rsrp: "Signal RSRP", snr: "Signal-to-noise SNR",
     good: "good", fair: "fair", poor: "poor",
     wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", pillOn: "on", pillOff: "off", reboot: "Restart router",
@@ -232,6 +232,7 @@ const mbit = b => b == null ? "–" : dec((b * 8 / 1e6).toFixed(b * 8 / 1e6 < 10
 const pct = v => v == null ? "–" : Math.round(v <= 1 ? v * 100 : v) + " %";
 const ipKey = ip => ip.split(".").reduce((a, x) => a * 256 + (+x || 0), 0);
 const val = (v, unit) => v == null || v === "" ? "–" : `${v} ${unit}`;
+const snrDb = v => v == null ? "–" : dec((v / 10).toFixed(1)) + " dB"; // raw value / 10 (assumption, not confirmed yet)
 const rating = v => v == null ? "–" : v >= -90 ? t("good") : v >= -100 ? t("fair") : t("poor");
 
 const ERR = {unreachable: "e_unreachable", auth: "e_auth", session: "e_session", other: "e_other", reboot: "e_reboot", starting: "connecting"};
@@ -259,7 +260,7 @@ function facts(d) {
     [t("wan"), d.overview.wan_ip], [t("net"), l.network], [t("isp"), l.isp],
     [t("rsrp"), byRating ? rating(l.rsrp) : val(l.rsrp, "dBm"), byRating ? val(l.rsrp, "dBm") : ""],
   ];
-  if (S.snr) rows.push([t("snr"), val(l.snr, "dB"), t("snrHint")]);
+  if (S.snr) rows.push([t("snr"), snrDb(l.snr)]);
   $("#facts").replaceChildren(...rows.map(([k, v, tip]) => {
     const row = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
     dt.textContent = k; dd.textContent = v || "–"; if (tip) dd.title = tip;

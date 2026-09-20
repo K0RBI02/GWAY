@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+- SNR (experimental) is now shown with one decimal place: the router reports it as a whole number (e.g. 105), which is treated as tenths of a dB (10.5 dB)
+
 ## 0.4.1
 - Fixed the add-on linter findings: removed the default values `boot` and `startup` from `config.yaml`
 - Replaced the obsolete `watchdog` option with a native Docker `HEALTHCHECK`
