@@ -1,7 +1,7 @@
 name: "GWAY"
 version: "0.3.0"
 slug: gway
-description: "GWAY: eigene Web-Oberfläche für den TP-Link Archer NX500"
+description: "GWAY: custom web interface for the TP-Link Archer NX500"
 url: "https://github.com/K0RBI02/GWAY"
 arch:
   - aarch64
@@ -12,7 +12,7 @@ boot: auto
 ports:
   8480/tcp: 8480
 ports_description:
-  8480/tcp: "Web-Oberfläche"
+  8480/tcp: "Web interface"
 options:
   router_host: "https://192.168.0.1"
   router_password: ""
