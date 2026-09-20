@@ -3,6 +3,7 @@
 A lightweight, private web UI for the TP-Link Archer NX500 (5G router) as a Home Assistant add-on.
 
 ![Screenshot](docs/screenshot.png)
+> Note: This screenshot is for demonstration purposes only and contains anonymized sample data. Personal information such as provider names, IP addresses, and device details has been replaced or hidden.
 
 ## Features
 
