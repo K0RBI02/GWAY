@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 GWAY - Backend
-Hält EINE Session zum TP-Link Archer NX500 (nur eine Admin-Session erlaubt),
-pollt im Hintergrund und liefert den Zwischenstand als JSON.
-Aktionen (WLAN-Band, Neustart) laufen über dieselbe Session.
+Keeps ONE session to the TP-Link Archer NX500 (only one admin session allowed),
+polls in the background, and provides the current state as JSON.
+Actions (Wi-Fi band, reboot) use the same session.
 """
 
 import json
@@ -22,10 +22,10 @@ from tplinkrouterc6u.common.exception import AuthorizeError, ClientException
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-PORT = 8480  # Container-Port; der Host-Port steht in config.yaml
+PORT = 8480  # Container port; the host port is defined in config.yaml
 STATIC = Path(__file__).parent / "static"
 BANDS = {"2g": Connection.HOST_2G, "5g": Connection.HOST_5G}
-DHCP_EVERY = 60  # Sekunden zwischen DHCP-Abfragen
+DHCP_EVERY = 60  # Seconds between DHCP queries
 
 
 def load_options():
@@ -40,7 +40,7 @@ def load_options():
 
 
 def classify(e):
-    """Grobe Fehlerart für das UI: unreachable, auth, session oder other."""
+    """General error category for the UI: unreachable, auth, session, or other."""
     if isinstance(e, AuthorizeError):
         return "auth"
     if isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.Timeout, OSError)):
@@ -61,10 +61,10 @@ class Poller(threading.Thread):
         self.client = None
         self.firmware = None
         self.stop_event = threading.Event()
-        self.lock = threading.Lock()  # schützt self.state
-        self.io = threading.RLock()  # serialisiert alle Router-Zugriffe
+        self.lock = threading.Lock()  # Protects self.state
+        self.io = threading.RLock()  # Serializes all router access
         self.history = deque(maxlen=90)
-        # Laufende Summen seit Add-on-Start (braucht nur konstant wenig Speicher, egal wie lange es läuft)
+        # Running totals since add-on startup (constant memory usage regardless of runtime)
         self.sums = {"rx": 0.0, "tx": 0.0}
         self.counts = {"rx": 0, "tx": 0}
         self.started = None
@@ -96,7 +96,7 @@ class Poller(threading.Thread):
             ]
             self.dhcp_at = time.time()
         except Exception:
-            pass  # alte Liste behalten
+            pass  # Keep the previous list
 
     def poll(self):
         with self.io:
@@ -112,7 +112,7 @@ class Poller(threading.Thread):
         if self.started is None:
             self.started = now
         for key, val in (("rx", lte.cur_rx_speed), ("tx", lte.cur_tx_speed)):
-            if val is not None:  # fehlende Werte zählen nicht als 0
+            if val is not None:  # Do not count missing values as zero
                 self.sums[key] += val
                 self.counts[key] += 1
         snap = {
@@ -216,7 +216,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"Nicht gefunden", "text/plain; charset=utf-8")
 
     def do_POST(self):
-        # Der Header erzwingt einen CORS-Preflight; fremde Webseiten können so keine Aktionen auslösen.
+        # This header forces a CORS preflight; external websites cannot trigger actions.
         if self.path != "/api/action" or self.headers.get("X-Requested-With") != "router-ui":
             return self._send(403, b'{"error":"Nicht erlaubt"}')
         try:
@@ -228,6 +228,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
 
 
 def main():
@@ -253,7 +254,7 @@ def main():
         poller.stop_event.set()
         poller.join(5)
         with poller.io:
-            poller.drop()  # sauber ausloggen, sonst bleibt eine Geister-Session
+            poller.drop()  # Log out cleanly; otherwise a ghost session remains
 
 
 if __name__ == "__main__":
