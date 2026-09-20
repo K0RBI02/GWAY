@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EEF2F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1220" media="(prefers-color-scheme: dark)">
 <title>GWAY</title>
 <style>
-:root{--paper:#EEF2F8;--ink:#1F2A44;--muted:#5B6782;--peach:#F7C9B6;--sky:#BFD6F2;--mint:#BFE3CF;--line:rgba(31,42,68,.3)}
-@media (prefers-color-scheme:dark){:root{--paper:#171D2E;--ink:#E9EEF8;--muted:#9AA6C2;--peach:#8A5240;--sky:#2E4468;--mint:#2F6650;--line:rgba(233,238,248,.3)}}
+:root{color-scheme:light dark;--paper:#EEF2F8;--ink:#1F2A44;--muted:#5B6782;--peach:#F7C9B6;--sky:#BFD6F2;--mint:#BFE3CF;--line:rgba(31,42,68,.3)}
+@media (prefers-color-scheme:dark){:root{--paper:#0D1220;--ink:#E9EEF8;--muted:#A7B4CF;--peach:#8E3B47;--sky:#2E4468;--mint:#297260;--line:rgba(233,238,248,.26)}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 ui-rounded,"SF Pro Rounded",Nunito,system-ui,sans-serif}
 .shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:56px;max-width:1120px;margin:0 auto;padding:40px 24px 64px}

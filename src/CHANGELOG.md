@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+- Dark mode: darker background, teal green and wine red accents instead of the previous green and brown-orange
+- Dark mode: better contrast for the grey text on the traffic card
+- Dark mode: native elements (dialogs, scrollbars, search field) now follow the color scheme
+- Mobile browsers get a matching theme color for the browser bar
+
 ## 0.5.1
 - Mobile: content that scrolls under the collapsed traffic bar no longer shows up again in the gap above it
 
