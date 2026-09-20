@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GWAY</title>
+<style>
+:root{--paper:#EEF2F8;--ink:#1F2A44;--muted:#5B6782;--peach:#F7C9B6;--sky:#BFD6F2;--mint:#BFE3CF;--line:rgba(31,42,68,.3)}
+@media (prefers-color-scheme:dark){:root{--paper:#171D2E;--ink:#E9EEF8;--muted:#9AA6C2;--peach:#8A5240;--sky:#2E4468;--mint:#2F6650;--line:rgba(233,238,248,.3)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 ui-rounded,"SF Pro Rounded",Nunito,system-ui,sans-serif}
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:56px;max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+aside{position:sticky;top:40px;align-self:start}
+h1{font-size:28px;margin:0 0 4px;font-weight:650;letter-spacing:-.01em}
+h2{font-size:18px;margin:40px 0 12px;font-weight:650}
+.status{color:var(--muted);margin:0 0 28px;display:flex;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--mint);border:2px solid var(--ink);margin-right:10px;flex:none}
+.dot.err{background:var(--peach)}
+dl{margin:0}
+dl div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1.5px dashed var(--line)}
+dt{color:var(--muted)}
+dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.actions{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+button{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 14px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+button:hover{border-style:solid}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+button[aria-pressed="true"] b{background:var(--mint)}
+button b{font-weight:500;border:1.5px solid var(--ink);border-radius:999px;padding:0 10px;font-size:14px;background:var(--peach)}
+button.danger{background:var(--peach);border-style:solid}
+
+/* Schleier: über der Oberkante der Modell-Zeile wird alles abgeschnitten */
+.minihost{position:sticky;top:40px;height:0;z-index:6}
+.veil{position:absolute;left:0;right:0;top:-40px;height:40px;background:var(--paper)}
+
+/* Hinweis: Interpolation immer als A*(1-p) + B*p schreiben, nicht als A - (A-B)*p (Chrome verrechnet sich bei p=1 im calc) */
+/* Traffic-Karte: --p (0..1) kommt aus dem Scroll-Fortschritt, --H/--D/--gy werden per JS gemessen */
+.traffic{--E:clamp(40px,7vw,72px);--wc:max(0px,100% - var(--res,264) * 1px);
+  position:sticky;top:40px;z-index:4;overflow:hidden;background:var(--sky);box-shadow:0 0 0 8px var(--paper);
+  height:calc((var(--H,330) - var(--D,270) * var(--p,0)) * 1px);
+  margin-bottom:calc(var(--D,270) * var(--p,0) * 1px + 40px);
+  padding:calc(28px - 10px * var(--p,0)) calc(28px - 10px * var(--p,0)) calc(28px - 18px * var(--p,0));
+  border-radius:calc(22px - 6px * var(--p,0))}
+.traffic::before{content:"";position:absolute;inset:0;background:radial-gradient(var(--ink) 1.4px,transparent 1.7px) 0 0/12px 12px;opacity:.15;-webkit-mask-image:linear-gradient(90deg,transparent 30%,#000);mask-image:linear-gradient(90deg,transparent 30%,#000)}
+.rates,.gslot,.note{position:relative}
+.rates{display:flex;flex-wrap:nowrap;gap:calc(48px - 28px * var(--p,0))}
+.rate b{display:block;font-size:calc(var(--E) * (1 - var(--p,0)) + 20px * var(--p,0));line-height:1;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rate>span{display:block;overflow:hidden;white-space:nowrap;line-height:1.3;color:var(--muted);font-size:calc(16px - 5px * var(--p,0));height:calc(1.3em * (1 - var(--p,0)));max-width:calc(300px * (1 - var(--p,0)));opacity:calc(1 - var(--p,0) * 2.5)}
+.v{display:inline-block;min-width:4.5ch}
+.arr{display:inline-block;overflow:hidden;vertical-align:top;font-style:normal;font-weight:500;color:var(--muted);width:calc(20px * var(--p,0));opacity:calc((var(--p,0) - .5) * 2)}
+.unit{align-self:center;overflow:hidden;white-space:nowrap;font-size:11px;color:var(--muted);width:calc(40px * var(--p,0));margin-left:calc(-12px * var(--p,0));opacity:calc((var(--p,0) - .5) * 2)}
+.gslot{height:96px;margin-top:20px}
+.note{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 16px;margin:8px 0 0;font-size:14px;color:var(--muted);opacity:calc(1 - var(--p,0) * 3)}
+.traffic svg{position:absolute;display:block;margin:0;overflow:visible;
+  top:calc((var(--gy,110) * (1 - var(--p,0)) + 12 * var(--p,0)) * 1px);
+  height:calc((96 * (1 - var(--p,0)) + 32 * var(--p,0)) * 1px);
+  left:calc(28px * (1 - var(--p,0)) + (100% - 18px - var(--wc)) * var(--p,0));
+  width:calc((100% - 56px) * (1 - var(--p,0)) + var(--wc) * var(--p,0))}
+
+.traffic svg{touch-action:pan-y;cursor:crosshair}
+.tip{position:fixed;z-index:20;display:none;pointer-events:none;background:var(--paper);color:var(--ink);border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;font-size:13px;line-height:1.35;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tip small{display:block;color:var(--muted);font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr)}
+.stats div{padding:4px 20px;border-left:1.5px dashed var(--line)}
+.stats div:first-child{padding-left:0;border-left:0}
+.stats b{display:block;font-size:30px;font-weight:650;font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted);font-size:14px}
+input{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 14px;width:100%;max-width:320px;margin-bottom:12px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1.5px dashed var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--muted)}
+th:first-child,td:first-child{width:100%;max-width:0}
+.nm{overflow-x:auto;white-space:nowrap;padding-right:16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)}
+.nm::-webkit-scrollbar{display:none}
+.empty{color:var(--muted);margin:0}
+@media (max-width:560px){table{font-size:14px}th:nth-child(3),td:nth-child(3){display:none}}
+@media (max-width:820px){.rates{gap:calc(24px - 8px * var(--p,0))}.rate>span{font-size:calc(13px - 2px * var(--p,0))}.minihost{top:12px}.veil{display:none}.traffic{top:12px}.shell{grid-template-columns:minmax(0,1fr);gap:24px}aside{position:static}.stats{grid-template-columns:1fr 1fr}.stats div:nth-child(3){padding-left:0;border-left:0;margin-top:16px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <h1 id="model">Router</h1>
+    <p class="status"><i class="dot err" id="dot"></i><span id="statustext">Verbinde …</span></p>
+    <dl id="facts"></dl>
+    <div class="actions">
+      <button id="w2" type="button" aria-pressed="false"><span>WLAN 2,4 GHz</span><b>–</b></button>
+      <button id="w5" type="button" aria-pressed="false"><span>WLAN 5 GHz</span><b>–</b></button>
+      <button id="reboot" type="button" class="danger"><span>Router neu starten</span></button>
+    </div>
+  </aside>
+  <main>
+    <div class="minihost"><div class="veil"></div></div>
+    <section class="traffic" aria-label="Internet-Traffic">
+      <div class="rates">
+        <div class="rate"><b><i class="arr" aria-hidden="true">↓</i><span class="v" id="rx">–</span></b><span>Download in Mbit/s</span></div>
+        <div class="rate"><b><i class="arr" aria-hidden="true">↑</i><span class="v" id="tx">–</span></b><span>Upload in Mbit/s</span></div>
+        <span class="unit" aria-hidden="true">Mbit/s</span>
+      </div>
+      <div class="gslot"></div>
+      <p class="note"><span id="period">Verlauf wird aufgebaut …</span><span id="avg"></span></p>
+      <svg id="spark" viewBox="0 0 600 96" preserveAspectRatio="none" role="img" aria-label="Verlauf der letzten Minuten"></svg>
+    </section>
+
+    <h2>Übersicht</h2>
+    <div class="stats">
+      <div><b id="clients">–</b><span id="clientsub">Geräte verbunden</span></div>
+      <div><b id="cpu">–</b><span>CPU-Auslastung</span></div>
+      <div><b id="mem">–</b><span>Arbeitsspeicher</span></div>
+    </div>
+
+    <h2>Geräte</h2>
+    <input id="q" type="search" placeholder="Name, IP oder MAC suchen" aria-label="Geräte durchsuchen">
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Gerät</th><th>IP-Adresse</th><th>MAC-Adresse</th><th>Verbindung</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <h2>Feste IP-Adressen</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Gerät</th><th>IP-Adresse</th><th>MAC-Adresse</th><th>Status</th></tr></thead>
+        <tbody id="resv"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="resvempty" hidden>Keine Reservierungen eingerichtet.</p>
+  </main>
+</div>
+<div class="tip" id="tip" aria-hidden="true"></div>
+<script>
+const $ = s => document.querySelector(s);
+const CONN = {wired:"Kabel",host_2g:"WLAN 2,4 GHz",host_5g:"WLAN 5 GHz",host_6g:"WLAN 6 GHz",guest_2g:"Gast 2,4 GHz",guest_5g:"Gast 5 GHz",guest_6g:"Gast 6 GHz"};
+let data = null;
+const ERR = {
+  unreachable: "Router nicht erreichbar. Ist er eingeschaltet und im Netzwerk?",
+  auth: "Anmeldung am Router fehlgeschlagen. Bitte das Passwort in der Add-on-Konfiguration prüfen.",
+  session: "Der Router hat die Anfrage abgelehnt. Vermutlich ist gerade jemand anderes als Admin angemeldet. Das Add-on versucht es gleich nochmal.",
+  other: "Etwas ist schiefgelaufen. Das Add-on versucht es gleich nochmal.",
+  starting: "Verbinde …",
+};
+const friendly = d => d.kind === "reboot" ? d.error : ERR[d.kind] || ERR.other;
+
+const mbit = b => b == null ? "–" : (b * 8 / 1e6).toFixed(b * 8 / 1e6 < 10 ? 2 : 1).replace(".", ",");
+const pct = v => v == null ? "–" : Math.round(v <= 1 ? v * 100 : v) + " %";
+const ipKey = ip => ip.split(".").reduce((a, x) => a * 256 + (+x || 0), 0);
+const val = (v, unit) => v == null || v === "" ? "–" : `${v} ${unit}`;
+
+function tableRows(tbody, list) {
+  tbody.replaceChildren(...list.map(cells => {
+    const tr = document.createElement("tr");
+    cells.forEach((t, i) => {
+      const td = document.createElement("td");
+      if (i === 0) { const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = t; td.append(nm); }
+      else td.textContent = t;
+      tr.append(td);
+    });
+    return tr;
+  }));
+}
+
+function facts(d) {
+  const l = d.lte, fw = d.firmware?.firmware || "";
+  const m = fw.match(/^(\S+).*Build\s+(\d+)/);
+  const rows = [
+    ["Firmware", m ? `${m[1]} (Build ${m[2]})` : fw, fw],
+    ["WAN-IP", d.overview.wan_ip], ["Netz", l.network], ["Anbieter", l.isp],
+    ["Empfang RSRP", val(l.rsrp, "dBm")], ["Rauschabstand SNR", val(l.snr, "dB")],
+  ];
+  $("#facts").replaceChildren(...rows.map(([k, v, tip]) => {
+    const row = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = k; dd.textContent = v || "–"; if (tip) dd.title = tip;
+    row.append(dt, dd); return row;
+  }));
+}
+
+function bands(o) {
+  [["#w2", o.wifi_2g], ["#w5", o.wifi_5g]].forEach(([id, on]) => {
+    const b = $(id); b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.querySelector("b").textContent = on ? "an" : "aus";
+  });
+}
+
+let latestHist = [], drawn = [], sparkMax = 1, hovering = false;
+const svgEl = $("#spark"), tip = $("#tip");
+
+function spark(hist) {
+  latestHist = hist;
+  if (hovering) return; // Graph steht still, solange man ihn anschaut
+  drawn = hist;
+  if (hist.length < 2) { svgEl.replaceChildren(); return; }
+  sparkMax = Math.max(1, ...hist.flatMap(h => [h[1] || 0, h[2] || 0]));
+  const line = (i, dash) => {
+    const pts = hist.map((h, n) => `${(n / (hist.length - 1) * 600).toFixed(1)},${(92 - (h[i] || 0) / sparkMax * 88).toFixed(1)}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"${dash ? ' stroke-dasharray="6 5"' : ""}/>`;
+  };
+  svgEl.innerHTML = line(1, false) + line(2, true);
+  svgEl.style.color = "var(--ink)";
+}
+
+function fmtDur(s) {
+  if (s < 90) return `${Math.max(s, 1)} Sek.`;
+  const m = Math.round(s / 60);
+  if (m < 90) return `${m} Min.`;
+  const hrs = Math.floor(m / 60);
+  if (hrs < 48) return `${hrs} Std. ${m % 60} Min.`;
+  return `${Math.floor(hrs / 24)} Tg. ${hrs % 24} Std.`;
+}
+
+// Links: Zeitraum des Graphen. Rechts: Durchschnitt über die gesamte Laufzeit seit Add-on-Start (vom Backend berechnet, ohne Zeitangabe).
+function summary(d) {
+  const hist = d.history || [], a = d.avg || {};
+  $("#period").textContent = hist.length < 2 ? "Verlauf wird aufgebaut …" : `Letzte ${fmtDur(hist[hist.length - 1][0] - hist[0][0])}`;
+  $("#avg").textContent = a.since && a.rx != null ? `Ø ↓ ${mbit(a.rx)} · ↑ ${mbit(a.tx)} Mbit/s` : "";
+}
+
+function marks(i) {
+  svgEl.querySelectorAll(".hov").forEach(n => n.remove());
+  const h = drawn[i], x = (i / (drawn.length - 1) * 600).toFixed(1), y = v => (92 - (v || 0) / sparkMax * 88).toFixed(1);
+  const mk = attrs => {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    n.setAttribute("class", "hov");
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    svgEl.append(n);
+  };
+  const base = {stroke: "currentColor", "vector-effect": "non-scaling-stroke"};
+  mk({...base, x1: x, x2: x, y1: 0, y2: 96, "stroke-width": 1.5, "stroke-dasharray": "3 3", opacity: .5});
+  [1, 2].forEach(k => mk({...base, x1: x, x2: x, y1: y(h[k]), y2: y(h[k]), "stroke-width": 9, "stroke-linecap": "round"}));
+}
+
+function hoverAt(e) {
+  if (drawn.length < 2) return;
+  hovering = true;
+  const r = svgEl.getBoundingClientRect();
+  const i = Math.max(0, Math.min(drawn.length - 1, Math.round((e.clientX - r.left) / r.width * (drawn.length - 1))));
+  const h = drawn[i];
+  marks(i);
+  const t = document.createElement("small"), v = document.createElement("span");
+  t.textContent = new Date(h[0] * 1000).toLocaleTimeString("de-DE");
+  v.textContent = `↓ ${mbit(h[1])} · ↑ ${mbit(h[2])} Mbit/s`;
+  tip.replaceChildren(t, v);
+  tip.style.display = "block";
+  const w = tip.offsetWidth, ht = tip.offsetHeight;
+  let left = e.clientX + 16, top = e.clientY - ht - 12;
+  if (left + w > innerWidth - 8) left = e.clientX - w - 16;
+  if (top < 8) top = e.clientY + 18;
+  tip.style.left = Math.max(8, left) + "px";
+  tip.style.top = top + "px";
+}
+
+function hoverEnd() {
+  if (!hovering) return;
+  hovering = false;
+  tip.style.display = "none";
+  spark(latestHist);
+}
+svgEl.addEventListener("pointermove", hoverAt);
+svgEl.addEventListener("pointerdown", hoverAt);
+svgEl.addEventListener("pointerleave", hoverEnd);
+svgEl.addEventListener("pointercancel", hoverEnd);
+
+function devices() {
+  const q = $("#q").value.trim().toLowerCase();
+  const list = (data?.devices || []).filter(d => !q || [d.name, d.ip, d.mac].some(x => x.toLowerCase().includes(q)))
+    .sort((a, b) => ipKey(a.ip) - ipKey(b.ip));
+  tableRows($("#rows"), list.map(d => [d.name || "(ohne Namen)", d.ip, d.mac, CONN[d.type] || d.type]));
+}
+
+function reservations() {
+  const list = [...(data?.reservations || [])].sort((a, b) => ipKey(a.ip) - ipKey(b.ip));
+  const norm = m => m.toUpperCase().replace(/[^0-9A-F]/g, "");
+  const online = new Map((data?.devices || []).flatMap(d => [[norm(d.mac), d], [d.ip, d]]));
+  const nameOf = r => {
+    if (r.name) return r.name;
+    const d = online.get(norm(r.mac)) || online.get(r.ip);
+    return d ? d.name || "(ohne Namen)" : "(gerade offline)";
+  };
+  tableRows($("#resv"), list.map(r => [nameOf(r), r.ip, r.mac, r.enabled ? "aktiv" : "aus"]));
+  $("#resvempty").hidden = list.length > 0;
+}
+
+function render(d) {
+  data = d;
+  $("#dot").classList.toggle("err", !d.ok);
+  if (!d.updated) { $("#statustext").textContent = friendly(d); $("#statustext").title = d.ok ? "" : d.error || ""; return; }
+  $("#statustext").textContent = d.ok ? "Verbunden" : friendly(d);
+  $("#statustext").title = d.ok ? "" : `Letzter Stand von ${new Date(d.updated * 1000).toLocaleTimeString("de-DE")}. Technisch: ${d.error || "-"}`;
+  $("#model").textContent = d.firmware?.model || "Router";
+  $("#rx").textContent = mbit(d.lte.rx);
+  $("#tx").textContent = mbit(d.lte.tx);
+  const o = d.overview;
+  $("#clients").textContent = o.clients_total ?? "–";
+  $("#clientsub").textContent = `Geräte: ${o.wired} Kabel, ${o.wifi} WLAN, ${o.guest} Gast`;
+  $("#cpu").textContent = pct(o.cpu);
+  $("#mem").textContent = pct(o.mem);
+  facts(d); bands(o); spark(d.history || []); summary(d); devices(); reservations();
+}
+
+async function load() {
+  try { render(await (await fetch("api/state", {cache: "no-store"})).json()); }
+  catch { $("#dot").classList.add("err"); $("#statustext").textContent = "Keine Verbindung zum Add-on. Läuft es in Home Assistant?"; }
+}
+
+async function act(body, btn) {
+  btn.disabled = true;
+  try {
+    const r = await fetch("api/action", {method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "router-ui"}, body: JSON.stringify(body)});
+    if (!r.ok) alert((await r.json().catch(() => ({}))).error || "Aktion fehlgeschlagen");
+  } catch { alert("Add-on nicht erreichbar"); }
+  btn.disabled = false; load();
+}
+
+function toggleBand(id, band, label) {
+  $(id).addEventListener("click", () => {
+    const on = $(id).getAttribute("aria-pressed") === "true";
+    const msg = on ? `${label} ausschalten? Geräte, die darüber verbunden sind, verlieren die Verbindung.` : `${label} einschalten?`;
+    if (confirm(msg)) act({action: "wifi", band, enable: !on}, $(id));
+  });
+}
+toggleBand("#w2", "2g", "WLAN 2,4 GHz");
+toggleBand("#w5", "5g", "WLAN 5 GHz");
+$("#reboot").addEventListener("click", () => {
+  if (confirm("Router wirklich neu starten? Das Internet ist danach etwa 2 Minuten weg.")) act({action: "reboot"}, $("#reboot"));
+});
+$("#q").addEventListener("input", devices);
+
+/* Traffic-Karte: schrumpft beim Scrollen von voller Höhe auf Leistenhöhe.
+   Die Unterkante der Karte folgt dabei genau der Oberkante des Inhalts darunter (Höhe = H - gescrollte Pixel).
+   HC = Höhe der Leiste. Fortschritt p = gescrollte Strecke / (H - HC). */
+const HC = 56;
+const rootEl = document.documentElement, card = $(".traffic"), mainEl = $("main"), slot = $(".gslot");
+let queued = false, dist = 1;
+
+function progress() {
+  queued = false;
+  const top0 = innerWidth > 820 ? 40 : 12;
+  const s = Math.max(0, top0 - mainEl.getBoundingClientRect().top);
+  rootEl.style.setProperty("--p", Math.min(1, s / dist).toFixed(4));
+}
+
+function measure() {
+  // Endzustand messen: rechte Kante des Upload-Werts + 16px Abstand + 18px Rand rechts = reservierter Platz
+  rootEl.style.setProperty("--p", "1");
+  const rw = card.querySelector(".rates").lastElementChild.getBoundingClientRect().right - card.getBoundingClientRect().left;
+  rootEl.style.setProperty("--res", Math.ceil(rw) + 34);
+  rootEl.style.setProperty("--p", "0");
+  card.style.height = "auto"; card.style.marginBottom = "40px";
+  const H = card.offsetHeight;
+  dist = Math.max(1, H - HC);
+  rootEl.style.setProperty("--H", H);
+  rootEl.style.setProperty("--D", dist);
+  rootEl.style.setProperty("--gy", slot.offsetTop);
+  card.style.height = ""; card.style.marginBottom = "";
+  progress();
+}
+
+addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(progress); } }, {passive: true});
+addEventListener("resize", measure);
+measure();
+if (document.fonts) document.fonts.ready.then(measure);
+load(); setInterval(load, 4000);
+</script>
+</body>
+</html>
