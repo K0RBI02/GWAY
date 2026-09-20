@@ -126,8 +126,8 @@ th:first-child,td:first-child{width:100%;max-width:0}
         <button type="button" data-set="rsrp" data-val="value" data-t="rsrpNum">Number</button><button type="button" data-set="rsrp" data-val="rating" data-t="rsrpRate">Rating</button></span></dd></div>
       <div><dt><span data-t="setSnr">Show SNR</span><svg class="xp" viewBox="0 0 24 24" role="img" data-t-aria="snrHint" data-t-title="snrHint"><path d="M9 3h6M10 3v6.2L4.8 18.3A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.7L14 9.2V3M7.5 14.5h9"/></svg></dt><dd><span class="seg" role="group" data-t-aria="setSnr">
         <button type="button" data-set="snr" data-val="off" data-t="segOff">Off</button><button type="button" data-set="snr" data-val="on" data-t="segOn">On</button></span></dd></div>
-      <div><dt data-t="setWifi">Wi-Fi switches</dt><dd><span class="seg" role="group" data-t-aria="setWifi">
-        <button type="button" data-set="wifi" data-val="simple" data-t="wifiSimple">Simple</button><button type="button" data-set="wifi" data-val="bands" data-t="wifiBands">Per band</button></span></dd></div>
+      <div><dt data-t="setWifi">Wi-Fi</dt><dd><span class="seg" role="group" data-t-aria="setWifi">
+        <button type="button" data-set="wifi" data-val="simple" data-t="wifiSimple">Simple</button><button type="button" data-set="wifi" data-val="bands" data-t="wifiBands">Band</button></span></dd></div>
     </dl>
     <div id="actionsSlot"></div>
     </div>
@@ -216,7 +216,7 @@ const I = {
     fw: "Firmware", wan: "WAN-IP", net: "Netz", isp: "Anbieter", rsrp: "Empfang RSRP", snr: "Rauschabstand SNR",
     good: "gut", fair: "mittel", poor: "schlecht",
     wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", guest24: "Gast-WLAN 2,4 GHz", guest5: "Gast-WLAN 5 GHz", wifiAll: "WLAN", guestAll: "Gast-WLAN", rowWifi: "WLAN", rowGuest: "Gast",
-    ghz24: "2,4 GHz", ghz5: "5 GHz", pillMixed: "teils", setWifi: "WLAN-Schalter", wifiSimple: "Einfach", wifiBands: "Pro Band", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
+    ghz24: "2,4 GHz", ghz5: "5 GHz", pillMixed: "teils", setWifi: "WLAN", wifiSimple: "Einfach", wifiBands: "Band", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
     pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
     trafficAria: "Internet-Traffic", sparkAria: "Verlauf der letzten Minuten",
     overview: "Übersicht", devConnected: "Geräte verbunden", devSub: (w, wl, g) => `Geräte: ${w} Kabel, ${wl} WLAN, ${g} Gast`,
@@ -245,7 +245,7 @@ const I = {
     fw: "Firmware", wan: "WAN IP", net: "Network", isp: "Provider", rsrp: "Signal RSRP", snr: "Signal-to-noise SNR",
     good: "good", fair: "fair", poor: "poor",
     wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", guest24: "Guest Wi-Fi 2.4 GHz", guest5: "Guest Wi-Fi 5 GHz", wifiAll: "Wi-Fi", guestAll: "Guest Wi-Fi", rowWifi: "Wi-Fi", rowGuest: "Guest",
-    ghz24: "2.4 GHz", ghz5: "5 GHz", pillMixed: "partial", setWifi: "Wi-Fi switches", wifiSimple: "Simple", wifiBands: "Per band", copied: "Copied", copyFailed: "Copy failed",
+    ghz24: "2.4 GHz", ghz5: "5 GHz", pillMixed: "partial", setWifi: "Wi-Fi", wifiSimple: "Simple", wifiBands: "Band", copied: "Copied", copyFailed: "Copy failed",
     pillOn: "on", pillOff: "off", reboot: "Restart router",
     trafficAria: "Internet traffic", sparkAria: "History of the last minutes",
     overview: "Overview", devConnected: "Devices connected", devSub: (w, wl, g) => `Devices: ${w} wired, ${wl} Wi-Fi, ${g} guest`,

@@ -1,8 +1,11 @@
 # Changelog
 
+## 0.5.5
+- Settings: shorter labels for the Wi-Fi option ("Wi-Fi" with "Simple" / "Band"), so the row fits on one line in the desktop sidebar
+
 ## 0.5.4
 - Wi-Fi switches are more compact: by default there is one switch for Wi-Fi and one for guest Wi-Fi (both bands together; "partial" if only one band is on)
-- New setting "Wi-Fi switches: Simple / Per band" shows the individual 2.4 and 5 GHz switches as compact chips
+- New setting "Wi-Fi: Simple / Band" shows the individual 2.4 and 5 GHz switches as compact chips
 
 ## 0.5.3
 - Favicon: the add-on icon is now shown in the browser tab
