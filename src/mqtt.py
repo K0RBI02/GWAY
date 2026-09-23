@@ -37,27 +37,48 @@ class MQTT:
     # Supervisor MQTT service
     # ------------------------------------------------------------------
 
-    def _get_service(self):
-        token = os.environ.get("SUPERVISOR_TOKEN")
+def _get_service(self):
+    token = os.environ.get("SUPERVISOR_TOKEN")
 
-        if not token:
-            LOG.warning("SUPERVISOR_TOKEN not available")
+    if not token:
+        LOG.warning("SUPERVISOR_TOKEN not available")
+        return None
+
+    req = urllib.request.Request(
+        SUPERVISOR_URL,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            payload = json.loads(
+                response.read().decode("utf-8")
+            )
+
+        if payload.get("result") != "ok":
+            LOG.warning(
+                "Supervisor MQTT service unavailable: %s",
+                payload.get("message", payload),
+            )
             return None
 
-        req = urllib.request.Request(
-            SUPERVISOR_URL,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
+        service = payload.get("data")
+
+        if not service:
+            LOG.warning("Supervisor MQTT service returned no data")
+            return None
+
+        return service
+
+    except Exception as exc:
+        LOG.warning(
+            "Could not get MQTT service from Supervisor: %s",
+            exc,
         )
-
-        try:
-            with urllib.request.urlopen(req, timeout=5) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except Exception as exc:
-            LOG.warning("Could not get MQTT service from Supervisor: %s", exc)
-            return None
+        return None
 
     # ------------------------------------------------------------------
     # MQTT callbacks
