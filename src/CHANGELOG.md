@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+* MQTT support for Home Assistant with automatic MQTT discovery
+* Router data is published through the existing poller without creating a second router session
+* Added clients, system, WAN, LTE and traffic sensors to Home Assistant
+* MQTT remains optional; the web interface continues to work without MQTT
+
 ## 0.5.5
 - Settings: shorter labels for the Wi-Fi option ("Wi-Fi" with "Simple" / "Band"), so the row fits on one line in the desktop sidebar
 
