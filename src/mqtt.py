@@ -36,14 +36,14 @@ class MQTT:
     # ------------------------------------------------------------------
     # Supervisor MQTT service
     # ------------------------------------------------------------------
-    
+
     def _get_service(self):
         token = os.environ.get("SUPERVISOR_TOKEN")
-    
+
         if not token:
             LOG.warning("SUPERVISOR_TOKEN not available")
             return None
-    
+
         req = urllib.request.Request(
             SUPERVISOR_URL,
             headers={
@@ -51,28 +51,28 @@ class MQTT:
                 "Content-Type": "application/json",
             },
         )
-    
+
         try:
             with urllib.request.urlopen(req, timeout=5) as response:
                 payload = json.loads(
                     response.read().decode("utf-8")
                 )
-    
+
             if payload.get("result") != "ok":
                 LOG.warning(
                     "Supervisor MQTT service unavailable: %s",
                     payload.get("message", payload),
                 )
                 return None
-    
+
             service = payload.get("data")
-    
+
             if not service:
                 LOG.warning("Supervisor MQTT service returned no data")
                 return None
-    
+
             return service
-    
+
         except Exception as exc:
             LOG.warning(
                 "Could not get MQTT service from Supervisor: %s",
@@ -237,6 +237,7 @@ class MQTT:
         device_class=None,
         state_class=None,
         icon=None,
+        precision=None,
     ):
         config = {
             "unique_id": f"gway_{object_id}",
@@ -261,6 +262,9 @@ class MQTT:
 
         if icon is not None:
             config["icon"] = icon
+
+        if precision is not None:
+            config["suggested_display_precision"] = precision
 
         topic = f"{DISCOVERY_PREFIX}/sensor/gway/{object_id}/config"
 
@@ -308,6 +312,7 @@ class MQTT:
             "overview.cpu",
             unit="%",
             icon="mdi:cpu-64-bit",
+            precision=1,
         )
 
         self._sensor(
@@ -316,6 +321,7 @@ class MQTT:
             "overview.mem",
             unit="%",
             icon="mdi:memory",
+            precision=1,
         )
 
         self._sensor(
@@ -354,6 +360,7 @@ class MQTT:
             "lte.snr",
             unit="dB",
             icon="mdi:signal",
+            precision=1,
         )
 
         # server.py exposes these values in bytes/s.
@@ -383,6 +390,7 @@ class MQTT:
             unit="B/s",
             state_class="measurement",
             icon="mdi:download-network",
+            precision=0,
         )
 
         self._sensor(
@@ -392,18 +400,74 @@ class MQTT:
             unit="B/s",
             state_class="measurement",
             icon="mdi:upload-network",
+            precision=0,
         )
 
     # ------------------------------------------------------------------
     # State
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _percent(value):
+        """The router reports CPU/memory as a fraction (0.22 = 22 %).
+        Same rule as the web UI: values up to 1 are fractions."""
+        if value is None:
+            return None
+
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        return round(value * 100 if value <= 1 else value, 1)
+
+    @staticmethod
+    def _prepare(state):
+        """Copy of the state with values converted for Home Assistant.
+        The original state (used by the web UI) is never modified."""
+        out = dict(state)
+
+        overview = state.get("overview")
+
+        if isinstance(overview, dict):
+            overview = dict(overview)
+            overview["cpu"] = MQTT._percent(overview.get("cpu"))
+            overview["mem"] = MQTT._percent(overview.get("mem"))
+            out["overview"] = overview
+
+        lte = state.get("lte")
+
+        if isinstance(lte, dict):
+            lte = dict(lte)
+
+            # Raw SNR is tenths of a dB (same assumption as the web UI).
+            try:
+                if lte.get("snr") is not None:
+                    lte["snr"] = round(float(lte["snr"]) / 10, 1)
+            except (TypeError, ValueError):
+                lte["snr"] = None
+
+            out["lte"] = lte
+
+        avg = state.get("avg")
+
+        if isinstance(avg, dict):
+            avg = dict(avg)
+
+            for key in ("rx", "tx"):
+                if avg.get(key) is not None:
+                    avg[key] = round(avg[key])
+
+            out["avg"] = avg
+
+        return out
+
     def publish_state(self, state):
         if not state:
             return
 
         payload = json.dumps(
-            state,
+            self._prepare(state),
             separators=(",", ":"),
             ensure_ascii=False,
         )

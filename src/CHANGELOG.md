@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4
+- Fixed the MQTT values in Home Assistant: CPU and memory usage are now real percentages (22 instead of 0.22) with one decimal place
+- SNR is sent as dB with one decimal place (13.0 instead of 130), matching the web interface
+- Average download and upload are rounded to whole bytes per second
+- The web interface is not affected; only the values sent to MQTT are converted
+
 ## 0.6.3
 - Fixed `server.py`: the script was contained twice (new version with MQTT followed by the old version without). The old copy is removed, so the add-on now shuts down cleanly and no second server is started
 - MQTT stays optional: without a broker the add-on logs a warning and the web interface keeps working
