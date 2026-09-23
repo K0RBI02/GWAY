@@ -1,5 +1,5 @@
 name: "GWAY"
-version: "0.6.4"
+version: "0.7.0"
 slug: gway
 description: "GWAY: custom web interface for the TP-Link Archer NX500"
 url: "https://github.com/K0RBI02/GWAY"
@@ -17,7 +17,11 @@ options:
   router_host: "https://192.168.0.1"
   router_password: ""
   poll_seconds: 8
+  data_limit_gb: 0
+  data_reset_day: 1
 schema:
   router_host: str
   router_password: password
   poll_seconds: int(4,60)
+  data_limit_gb: float(0,100000)
+  data_reset_day: int(1,28)

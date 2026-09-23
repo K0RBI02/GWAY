@@ -8,5 +8,11 @@ configuration:
   poll_seconds:
     name: Abfrage-Intervall (Sekunden)
     description: Wie oft der Router abgefragt wird (4 bis 60)
+  data_limit_gb:
+    name: Datenlimit (GB)
+    description: Monatliches Mobilfunk-Datenlimit für die Verbrauchs-Kachel; 0 zeigt den Verbrauch ohne Limit
+  data_reset_day:
+    name: Reset-Tag des Datenzählers
+    description: Tag des Monats, an dem der Datenzähler neu beginnt (1 bis 28)
 network:
   8480/tcp: Web-Oberfläche

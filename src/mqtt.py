@@ -363,6 +363,17 @@ class MQTT:
             precision=1,
         )
 
+        self._sensor(
+            "data_used",
+            "Data Used",
+            "data.used_gb",
+            unit="GB",
+            device_class="data_size",
+            state_class="total_increasing",
+            icon="mdi:database-arrow-down",
+            precision=2,
+        )
+
         # server.py exposes these values in bytes/s.
         # HA will therefore receive the same raw values.
         self._sensor(
@@ -459,6 +470,16 @@ class MQTT:
                     avg[key] = round(avg[key])
 
             out["avg"] = avg
+
+        data = state.get("data")
+
+        if isinstance(data, dict):
+            data = dict(data)
+
+            if data.get("used") is not None:
+                data["used_gb"] = round(data["used"] / 1e9, 2)
+
+            out["data"] = data
 
         return out
 

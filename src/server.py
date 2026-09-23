@@ -40,6 +40,50 @@ BANDS = {
 
 DHCP_EVERY = 60
 
+# Persistent storage (the add-on's /data folder survives restarts and updates)
+DATA_DIR = Path(os.environ.get("GWAY_DATA", "/data"))
+STORE = DATA_DIR / "gway.json"
+SAVE_EVERY = 60
+GB = 1_000_000_000
+_save_warned = False
+
+
+def load_store():
+    try:
+        data = json.loads(STORE.read_text())
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_store(data):
+    """Atomic write; a failure only disables persistence, never the add-on."""
+    global _save_warned
+
+    try:
+        STORE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = STORE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data))
+        tmp.replace(STORE)
+    except Exception as e:
+        if not _save_warned:
+            _save_warned = True
+            print(f"WARNING: cannot write {STORE}: {e}", flush=True)
+
+
+def period_start(ts, reset_day):
+    """Start date (YYYY-MM-DD) of the data period that contains ts."""
+    t = time.localtime(ts)
+    year, month = t.tm_year, t.tm_mon
+
+    if t.tm_mday < reset_day:
+        month -= 1
+
+        if month == 0:
+            month, year = 12, year - 1
+
+    return f"{year:04d}-{month:02d}-{reset_day:02d}"
+
 
 def load_options():
     p = Path("/data/options.json")
@@ -93,17 +137,33 @@ class Poller(threading.Thread):
 
         self.history = deque(maxlen=90)
 
-        self.sums = {
-            "rx": 0.0,
-            "tx": 0.0,
-        }
+        self.interval = max(4, int(opts.get("poll_seconds", 8)))
 
-        self.counts = {
-            "rx": 0,
-            "tx": 0,
-        }
+        try:
+            self.limit_gb = max(0.0, float(opts.get("data_limit_gb") or 0))
+        except (TypeError, ValueError):
+            self.limit_gb = 0.0
 
+        try:
+            self.reset_day = min(28, max(1, int(opts.get("data_reset_day") or 1)))
+        except (TypeError, ValueError):
+            self.reset_day = 1
+
+        # Running totals since the first start (restored from /data)
+        self.sums = {"rx": 0.0, "tx": 0.0}
+        self.counts = {"rx": 0, "tx": 0}
         self.started = None
+
+        # Data usage of the current period
+        self.usage = {
+            "period": None,
+            "used": 0.0,
+            "last_total": None,
+            "last_ts": None,
+        }
+
+        self._restore(load_store())
+        self.saved_at = 0
 
         self.dhcp = []
         self.dhcp_at = 0
@@ -185,16 +245,20 @@ class Poller(threading.Thread):
             )
         )
 
-        if self.started is None:
-            self.started = now
+        with self.lock:
+            if self.started is None:
+                self.started = now
 
-        for key, value in (
-            ("rx", lte.cur_rx_speed),
-            ("tx", lte.cur_tx_speed),
-        ):
-            if value is not None:
-                self.sums[key] += value
-                self.counts[key] += 1
+            for key, value in (
+                ("rx", lte.cur_rx_speed),
+                ("tx", lte.cur_tx_speed),
+            ):
+                if value is not None:
+                    self.sums[key] += value
+                    self.counts[key] += 1
+
+            self._count_data(lte, now)
+            data = self._data_snapshot()
 
         snap = {
             "ok": True,
@@ -228,6 +292,7 @@ class Poller(threading.Thread):
                 "snr": lte.snr,
                 "rx": lte.cur_rx_speed,
                 "tx": lte.cur_tx_speed,
+                "total": lte.total_statistics,
             },
 
             "devices": [
@@ -255,6 +320,8 @@ class Poller(threading.Thread):
                 ),
                 "since": self.started,
             },
+
+            "data": data,
         }
 
         # Update the internal state first.
@@ -263,6 +330,95 @@ class Poller(threading.Thread):
 
         # Then publish exactly that state to Home Assistant.
         self.mqtt.publish_state(snap)
+
+        self.persist()
+
+    def _restore(self, saved):
+        try:
+            avg = saved.get("avg", {})
+            self.sums = {
+                "rx": float(avg.get("rx_sum", 0)),
+                "tx": float(avg.get("tx_sum", 0)),
+            }
+            self.counts = {
+                "rx": int(avg.get("rx_n", 0)),
+                "tx": int(avg.get("tx_n", 0)),
+            }
+            self.started = avg.get("started")
+
+            usage = saved.get("usage", {})
+            self.usage = {
+                "period": usage.get("period"),
+                "used": float(usage.get("used", 0)),
+                "last_total": usage.get("last_total"),
+                "last_ts": usage.get("last_ts"),
+            }
+        except Exception:
+            pass
+
+    def persist(self, force=False):
+        now = time.time()
+
+        if not force and now - self.saved_at < SAVE_EVERY:
+            return
+
+        with self.lock:
+            payload = {
+                "avg": {
+                    "rx_sum": self.sums["rx"],
+                    "tx_sum": self.sums["tx"],
+                    "rx_n": self.counts["rx"],
+                    "tx_n": self.counts["tx"],
+                    "started": self.started,
+                },
+                "usage": dict(self.usage),
+            }
+
+        save_store(payload)
+        self.saved_at = now
+
+    def _count_data(self, lte, now):
+        """Add the data used since the last poll (caller holds self.lock)."""
+        u = self.usage
+        period = period_start(now, self.reset_day)
+
+        if u.get("period") != period:
+            u["period"] = period
+            u["used"] = 0.0
+
+        total = lte.total_statistics
+
+        if total is not None:
+            # The router keeps a running counter: count the difference.
+            # If it went down (router reset it), start again from its value.
+            last = u.get("last_total")
+
+            if last is not None:
+                u["used"] += total - last if total >= last else total
+
+            u["last_total"] = total
+
+        else:
+            # Fallback: integrate the current speeds
+            last_ts = u.get("last_ts")
+
+            if last_ts is not None:
+                gap = min(now - last_ts, self.interval * 3)
+                speed = (lte.cur_rx_speed or 0) + (lte.cur_tx_speed or 0)
+                u["used"] += speed * gap
+
+        u["last_ts"] = now
+
+    def _data_snapshot(self):
+        u = self.usage
+
+        return {
+            "used": int(u["used"]),
+            "limit": int(self.limit_gb * GB) if self.limit_gb > 0 else None,
+            "reset_day": self.reset_day,
+            "since": u.get("period"),
+            "source": "router" if u.get("last_total") is not None else "speed",
+        }
 
     def act(self, body):
         action = body.get("action")
@@ -311,10 +467,7 @@ class Poller(threading.Thread):
                 raise ValueError("Unknown action")
 
     def run(self):
-        interval = max(
-            4,
-            int(self.opts.get("poll_seconds", 8)),
-        )
+        interval = self.interval
 
         while not self.stop_event.is_set():
             if time.time() >= self.paused_until:
@@ -492,6 +645,8 @@ def main():
     finally:
         poller.stop_event.set()
         poller.join(5)
+
+        poller.persist(force=True)
 
         poller.mqtt.stop()
 

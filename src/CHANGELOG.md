@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+- New data usage tile next to devices, CPU and memory: four tiles in a row on the desktop, 2x2 on small screens
+- The tile shows the data used in the current period; with a limit it also shows "of X GB" and a progress bar (turns red from 90 %)
+- The volume is taken from the router's own counter (`total_statistics`, assumed to be in bytes; experimental). If the router does not report it, GWAY counts from the current speeds instead
+- New options `data_limit_gb` (0 = no limit) and `data_reset_day` (1 to 28): the counter starts again on that day of the month. The first period starts counting when the add-on first sees the counter
+- Data usage and the traffic average are now stored in the add-on's `/data` folder and survive restarts and updates
+- MQTT: new sensor "Data Used" (GB)
+
 ## 0.6.4
 - Fixed the MQTT values in Home Assistant: CPU and memory usage are now real percentages (22 instead of 0.22) with one decimal place
 - SNR is sent as dB with one decimal place (13.0 instead of 130), matching the web interface
