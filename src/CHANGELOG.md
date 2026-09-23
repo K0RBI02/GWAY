@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+- Fixed the MQTT service lookup through the Home Assistant Supervisor
+- Improved handling of unavailable or incomplete MQTT service responses
+
+## 0.6.1
+- MQTT support is now included in the add-on Docker image
+
 ## 0.6.0
 
 * MQTT support for Home Assistant with automatic MQTT discovery
