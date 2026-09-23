@@ -10,6 +10,7 @@ WORKDIR /app
 COPY server.py /app/server.py
 COPY icon.png /app/icon.png
 COPY static /app/static
+COPY mqtt.py /app/mqtt.py
 
 # Health check: Home Assistant uses the container health status instead of the obsolete "watchdog" option
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
