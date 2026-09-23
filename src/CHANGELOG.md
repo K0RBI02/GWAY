@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.3
+- Fixed `server.py`: the script was contained twice (new version with MQTT followed by the old version without). The old copy is removed, so the add-on now shuts down cleanly and no second server is started
+- MQTT stays optional: without a broker the add-on logs a warning and the web interface keeps working
+
 ## 0.6.2
 - Fixed the MQTT service lookup through the Home Assistant Supervisor
 - Improved handling of unavailable or incomplete MQTT service responses
