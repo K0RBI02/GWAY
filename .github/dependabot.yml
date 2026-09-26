@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Base image in src/Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+
+  # Python dependencies in src/requirements.txt
+  - package-ecosystem: "pip"
+    directory: "/src"
+    schedule:
+      interval: "weekly"

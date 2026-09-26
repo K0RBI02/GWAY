@@ -1,0 +1,18 @@
+configuration:
+  router_host:
+    name: Router address
+    description: Address of the router web interface including https://, e.g. https://192.168.0.1
+  router_password:
+    name: Router password
+    description: Admin password of the router web interface
+  poll_seconds:
+    name: Poll interval (seconds)
+    description: How often the router is queried (4 to 60)
+  data_limit_gb:
+    name: Data limit (GB)
+    description: Monthly mobile data limit for the usage tile; 0 shows the usage without a limit
+  data_reset_day:
+    name: Data reset day
+    description: Day of the month on which the data counter starts again (1 to 28)
+network:
+  8480/tcp: Web interface

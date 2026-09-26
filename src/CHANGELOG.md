@@ -1,0 +1,132 @@
+# Changelog
+
+## 0.8.0
+- New "Port forwarding" section: shows existing rules and lets you add and delete them
+- Add a rule with a name, external port, internal IP and port, and protocol (TCP/UDP)
+- Reverse-engineered from the router's own web interface (a different, JSON-based dialect of its encrypted API than the rest of GWAY uses); only tested with the WAN interface named "MBB" (the mobile connection), since that's what this add-on targets
+- The port-forwarding list is not part of the regular 8-second polling; it loads once and refreshes after you add or delete a rule
+
+## 0.7.0
+- New data usage tile next to devices, CPU and memory: four tiles in a row on the desktop, 2x2 on small screens
+- The tile shows the data used in the current period; with a limit it also shows "of X GB" and a progress bar (turns red from 90 %)
+- The volume is taken from the router's own counter (`total_statistics`, assumed to be in bytes; experimental). If the router does not report it, GWAY counts from the current speeds instead
+- New options `data_limit_gb` (0 = no limit) and `data_reset_day` (1 to 28): the counter starts again on that day of the month. The first period starts counting when the add-on first sees the counter
+- Data usage and the traffic average are now stored in the add-on's `/data` folder and survive restarts and updates
+- MQTT: new sensor "Data Used" (GB)
+
+## 0.6.4
+- Fixed the MQTT values in Home Assistant: CPU and memory usage are now real percentages (22 instead of 0.22) with one decimal place
+- SNR is sent as dB with one decimal place (13.0 instead of 130), matching the web interface
+- Average download and upload are rounded to whole bytes per second
+- The web interface is not affected; only the values sent to MQTT are converted
+
+## 0.6.3
+- Fixed `server.py`: the script was contained twice (new version with MQTT followed by the old version without). The old copy is removed, so the add-on now shuts down cleanly and no second server is started
+- MQTT stays optional: without a broker the add-on logs a warning and the web interface keeps working
+
+## 0.6.2
+- Fixed the MQTT service lookup through the Home Assistant Supervisor
+- Improved handling of unavailable or incomplete MQTT service responses
+
+## 0.6.1
+- MQTT support is now included in the add-on Docker image
+
+## 0.6.0
+
+* MQTT support for Home Assistant with automatic MQTT discovery
+* Router data is published through the existing poller without creating a second router session
+* Added clients, system, WAN, LTE and traffic sensors to Home Assistant
+* MQTT remains optional; the web interface continues to work without MQTT
+
+## 0.5.5
+- Settings: shorter labels for the Wi-Fi option ("Wi-Fi" with "Simple" / "Band"), so the row fits on one line in the desktop sidebar
+
+## 0.5.4
+- Wi-Fi switches are more compact: by default there is one switch for Wi-Fi and one for guest Wi-Fi (both bands together; "partial" if only one band is on)
+- New setting "Wi-Fi: Simple / Band" shows the individual 2.4 and 5 GHz switches as compact chips
+
+## 0.5.3
+- Favicon: the add-on icon is now shown in the browser tab
+- Click an IP or MAC address in the tables to copy it (also works over plain http)
+- Guest Wi-Fi switches for 2.4 and 5 GHz (only shown if the router reports them)
+- README screenshot updated (English, light, dark and mobile)
+
+## 0.5.2
+- Dark mode: darker background, teal green and wine red accents instead of the previous green and brown-orange
+- Dark mode: better contrast for the grey text on the traffic card
+- Dark mode: native elements (dialogs, scrollbars, search field) now follow the color scheme
+- Mobile browsers get a matching theme color for the browser bar
+
+## 0.5.1
+- Mobile: content that scrolls under the collapsed traffic bar no longer shows up again in the gap above it
+
+## 0.5.0
+- Mobile: the Wi-Fi switches and the restart button moved into the settings panel on small screens, so the traffic card starts higher
+- Graph: fixed scale (as on the desktop layout). A narrower graph, such as the collapsed bar on phones, shows fewer samples instead of squeezing everything; the maximum is 90 samples (about 12 minutes)
+- Mobile: the three overview tiles fit in one row
+- Touch: slightly larger, invisible hit areas for the gear icon and the settings toggles
+
+## 0.4.2
+- SNR (experimental) is now shown with one decimal place: the router reports it as a whole number (e.g. 105), which is treated as tenths of a dB (10.5 dB)
+
+## 0.4.1
+- Fixed the add-on linter findings: removed the default values `boot` and `startup` from `config.yaml`
+- Replaced the obsolete `watchdog` option with a native Docker `HEALTHCHECK`
+
+## 0.4.0
+- Settings panel (gear icon next to the model name): language (German/English), RSRP as number or rating (good/fair/poor), optional experimental SNR display
+- The interface is available in English and German; the default follows the browser language
+- The `tplinkrouterc6u` library is now pinned in `requirements.txt` for reproducible builds
+- Home Assistant watchdog: the add-on is restarted automatically if the web interface stops responding
+- Dependabot now watches the Docker base image, the Python dependency and GitHub Actions
+- Lint workflow: add-on linter, Python syntax check and Docker build on every push
+- Remaining German texts in code and documentation translated to English
+
+## 0.3.0
+- Project is now called GWAY (directory structure: add-on is located in `src/`)
+- Available as an add-on repository: installation via repository URL, updates directly in the add-on store
+- Icon, logo, and German/English translations for the configuration fields
+- Neutral default router address in the configuration
+
+## 0.2.9
+- Average below the graph without a time indication ("Ø ↓ 2.63 · ↑ 0.22 Mbit/s"); it is still calculated over the entire runtime since the add-on was started
+
+## 0.2.8
+- The average below the graph now applies to the entire runtime since the add-on was started (until the next restart), including the duration, e.g. "Ø since 3 hr 12 min"
+- Measurements without a value no longer count as 0 and no longer reduce the average
+
+## 0.2.7
+- Graph: a hover bubble next to the cursor shows the time as well as download and upload at the hovered point (on mobile, by tapping or swiping)
+- Below the graph: time period on the left, download and upload averages on the right; the explanatory sentence has been removed
+- Clear error messages instead of technical messages (router unreachable, login failed, admin session occupied, add-on unreachable)
+
+## 0.2.6
+- Collapsed bar: arrows (↓ ↑) instead of the "Download/Upload" text, with the unit Mbit/s shown once
+- Numbers have a fixed minimum width, so the graph no longer shifts when the number of digits changes
+- Changelog added
+
+## 0.2.5
+- Graph in the bar fills all the space between the values and the right edge
+- Tables: only the name column scrolls for long names, rather than the entire table
+- Mobile devices (under 560 px): MAC column hidden to leave more room for names
+
+## 0.2.4
+- Traffic card smoothly shrinks into the bar while scrolling (numbers move to the left, graph to the right)
+- Nothing protrudes above the model row while scrolling
+- Mobile: page was wider than the screen; fixed
+
+## 0.2.3
+- Transition to the compact bar with showing and hiding (intermediate version, replaced in 0.2.4)
+
+## 0.2.2
+- Compact traffic bar while scrolling (first version)
+
+## 0.2.1
+- Names for fixed IP addresses are supplemented from the device list; otherwise "(currently offline)"
+
+## 0.2.0
+- Connection type and "Online since" removed, RSRP and SNR instead of signal strength, firmware shortened
+- New: fixed IP addresses (DHCP reservations), enable/disable Wi-Fi bands, restart router
+
+## 0.1.0
+- Initial version: live traffic, overview, and device list

@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EEF2F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1220" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<title>GWAY</title>
+<style>
+:root{color-scheme:light dark;--paper:#EEF2F8;--ink:#1F2A44;--muted:#5B6782;--peach:#F7C9B6;--sky:#BFD6F2;--mint:#BFE3CF;--line:rgba(31,42,68,.3)}
+@media (prefers-color-scheme:dark){:root{--paper:#0D1220;--ink:#E9EEF8;--muted:#A7B4CF;--peach:#8E3B47;--sky:#2E4468;--mint:#297260;--line:rgba(233,238,248,.26)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 ui-rounded,"SF Pro Rounded",Nunito,system-ui,sans-serif}
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:56px;max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+aside{position:sticky;top:40px;align-self:start}
+h1{font-size:28px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:18px;margin:40px 0 12px;font-weight:650}
+.titlerow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px}
+.status{color:var(--muted);margin:0 0 28px;display:flex;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--mint);border:2px solid var(--ink);margin-right:10px;flex:none}
+.dot.err{background:var(--peach)}
+dl{margin:0}
+dl div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1.5px dashed var(--line)}
+dt{color:var(--muted)}
+dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.actions{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+button{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 14px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+button:hover{border-style:solid}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+button[aria-pressed="true"] b{background:var(--mint)}
+button b{font-weight:500;border:1.5px solid var(--ink);border-radius:999px;padding:0 10px;font-size:14px;background:var(--peach)}
+button.danger{background:var(--peach);border-style:solid}
+#wifiSimple,#wifiBands{display:flex;flex-direction:column;gap:10px}
+button[aria-pressed="mixed"] b{background:var(--sky)}
+.wrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px 6px 14px;border:1.5px dashed var(--line);border-radius:12px}
+.wrow>span:first-child{white-space:nowrap}
+.chips{display:inline-flex;gap:6px}
+button.chip{white-space:nowrap;border:1.5px dashed var(--line);border-radius:999px;padding:0 10px;font-size:14px;line-height:24px;justify-content:center;color:var(--muted)}
+button.chip[aria-pressed="true"]{border:1.5px solid var(--ink);background:var(--mint);color:var(--ink)}
+
+/* Settings: gear button next to the model name, panel below the facts */
+button.icon{width:34px;height:34px;padding:0;justify-content:center;color:var(--muted);flex:none}
+button.icon svg,.xp{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+button.icon[aria-expanded="true"]{border-style:solid;color:var(--ink)}
+#settings{margin-top:20px}
+#actionsSlot .actions{margin-top:16px}
+[hidden]{display:none!important}
+.xp{width:16px;height:16px;vertical-align:-3px;margin-left:6px}
+.seg{display:inline-flex;gap:2px;border:1.5px dashed var(--line);border-radius:999px;padding:2px}
+.seg button{border:0;border-radius:999px;padding:0 10px;font-size:14px;line-height:24px;justify-content:center}
+.seg button[aria-pressed="true"]{background:var(--sky)}
+/* Touch: invisible, slightly larger hit areas (the look stays the same) */
+@media (pointer:coarse){button.icon,.seg button,button.chip{position:relative}button.icon::after{content:"";position:absolute;inset:-5px}.seg button::after,button.chip::after{content:"";position:absolute;inset:-8px 0}}
+
+/* Veil: everything is cut off above the top edge of the model row */
+.minihost{position:sticky;top:40px;height:0;z-index:6}
+.veil{position:absolute;left:0;right:0;top:-40px;height:40px;background:var(--paper)}
+
+/* Traffic card: --p (0..1) comes from the scroll progress, --H/--D/--gy/--res are measured by JS.
+   Write interpolations as A*(1-p) + B*p, not A - (A-B)*p (Chrome miscalculates that at p=1). */
+.traffic{--E:clamp(40px,7vw,72px);--wc:max(0px,100% - var(--res,264) * 1px);
+  position:sticky;top:40px;z-index:4;overflow:hidden;background:var(--sky);box-shadow:0 0 0 8px var(--paper);
+  height:calc((var(--H,330) - var(--D,270) * var(--p,0)) * 1px);
+  margin-bottom:calc(var(--D,270) * var(--p,0) * 1px + 40px);
+  padding:calc(28px - 10px * var(--p,0)) calc(28px - 10px * var(--p,0)) calc(28px - 18px * var(--p,0));
+  border-radius:calc(22px - 6px * var(--p,0))}
+.traffic::before{content:"";position:absolute;inset:0;background:radial-gradient(var(--ink) 1.4px,transparent 1.7px) 0 0/12px 12px;opacity:.15;-webkit-mask-image:linear-gradient(90deg,transparent 30%,#000);mask-image:linear-gradient(90deg,transparent 30%,#000)}
+.rates,.gslot,.note{position:relative}
+.rates{display:flex;flex-wrap:nowrap;gap:calc(48px - 28px * var(--p,0))}
+.rate b{display:block;white-space:nowrap;font-size:calc(var(--E) * (1 - var(--p,0)) + 20px * var(--p,0));line-height:1;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rate>span{display:block;overflow:hidden;white-space:nowrap;line-height:1.3;color:var(--muted);font-size:calc(16px - 5px * var(--p,0));height:calc(1.3em * (1 - var(--p,0)));max-width:calc(300px * (1 - var(--p,0)));opacity:calc(1 - var(--p,0) * 2.5)}
+.v{display:inline-block;min-width:4.5ch}
+.arr{display:inline-block;overflow:hidden;vertical-align:top;font-style:normal;font-weight:500;color:var(--muted);width:calc(20px * var(--p,0));opacity:calc((var(--p,0) - .5) * 2)}
+.unit{align-self:center;overflow:hidden;white-space:nowrap;font-size:11px;color:var(--muted);width:calc(40px * var(--p,0));margin-left:calc(-12px * var(--p,0));opacity:calc((var(--p,0) - .5) * 2)}
+.gslot{height:96px;margin-top:20px}
+.note{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 16px;margin:8px 0 0;font-size:14px;color:var(--muted);opacity:calc(1 - var(--p,0) * 3)}
+.traffic svg{position:absolute;display:block;margin:0;overflow:visible;touch-action:pan-y;cursor:crosshair;
+  top:calc((var(--gy,110) * (1 - var(--p,0)) + 12 * var(--p,0)) * 1px);
+  height:calc((96 * (1 - var(--p,0)) + 32 * var(--p,0)) * 1px);
+  left:calc(28px * (1 - var(--p,0)) + (100% - 18px - var(--wc)) * var(--p,0));
+  width:calc((100% - 56px) * (1 - var(--p,0)) + var(--wc) * var(--p,0))}
+.tip{position:fixed;z-index:20;display:none;pointer-events:none;background:var(--paper);color:var(--ink);border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;font-size:13px;line-height:1.35;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tip small{display:block;color:var(--muted);font-size:12px}
+button.cp{all:unset;cursor:pointer;white-space:nowrap;border-bottom:1.5px dashed transparent}
+button.cp:hover,button.cp:focus-visible{border-bottom-color:var(--line)}
+button.cp:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:30;background:var(--paper);color:var(--ink);border:1.5px dashed var(--line);border-radius:12px;padding:8px 16px;font-size:14px;white-space:nowrap;pointer-events:none}
+
+/* Overview tiles: four in a row on desktop, 2x2 on small screens */
+.stats{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr}
+.stats div{padding:4px 20px;border-left:1.5px dashed var(--line)}
+.stats div:first-child{padding-left:0;border-left:0}
+.stats b{display:block;font-size:30px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats span{color:var(--muted);font-size:14px}
+/* Data usage bar (only with a limit) */
+.stats .bar{display:block;height:8px;margin-top:8px;border:1.5px dashed var(--line);border-radius:999px;overflow:hidden}
+.stats .bar i{display:block;height:100%;width:0;background:var(--mint)}
+.stats .bar.warn i{background:var(--peach)}
+input{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 14px;width:100%;max-width:320px;margin-bottom:12px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1.5px dashed var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--muted)}
+th:first-child,td:first-child{width:100%;max-width:0}
+.nm{overflow-x:auto;white-space:nowrap;padding-right:16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)}
+.nm::-webkit-scrollbar{display:none}
+.empty{color:var(--muted);margin:0}
+.pfform{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 20px}
+.pfform label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.pfform input,.pfform select{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 10px}
+.pfform input{width:9em}
+.pfform input[name="name"]{width:11em}
+.pfform button{align-self:flex-end}
+td.pfdel{width:1%}
+button.rm{all:unset;cursor:pointer;color:var(--muted);border:1.5px dashed var(--line);border-radius:10px;padding:4px 10px;font-size:13px}
+button.rm:hover{border-style:solid;color:var(--ink)}
+@media (max-width:560px){table{font-size:14px}th:nth-child(3),td:nth-child(3){display:none}}
+@media (max-width:820px){.rates{gap:calc(24px - 8px * var(--p,0))}.rate>span{font-size:calc(13px - 2px * var(--p,0))}.minihost{top:12px}.veil{top:-12px;height:12px}.traffic{top:12px}.shell{grid-template-columns:minmax(0,1fr);gap:24px}aside{position:static}.stats{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px}.stats div{padding:4px 10px}.stats div:nth-child(odd){padding-left:0;border-left:0}.stats div:nth-child(even){padding-left:16px}.stats b{font-size:25px}.stats span{font-size:12.5px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="titlerow">
+      <h1 id="model">Router</h1>
+      <button id="gear" class="icon" type="button" aria-expanded="false" aria-controls="settings" data-t-aria="settings" data-t-title="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.98 9.53 L21.70 10.03 L21.70 13.97 L18.98 14.47 L18.68 15.19 L20.25 17.47 L17.47 20.25 L15.19 18.68 L14.47 18.98 L13.97 21.70 L10.03 21.70 L9.53 18.98 L8.81 18.68 L6.53 20.25 L3.75 17.47 L5.32 15.19 L5.02 14.47 L2.30 13.97 L2.30 10.03 L5.02 9.53 L5.32 8.81 L3.75 6.53 L6.53 3.75 L8.81 5.32 L9.53 5.02 L10.03 2.30 L13.97 2.30 L14.47 5.02 L15.19 5.32 L17.47 3.75 L20.25 6.53 L18.68 8.81 Z"/><circle cx="12" cy="12" r="3.2"/></svg>
+      </button>
+    </div>
+    <p class="status" role="status"><i class="dot err" id="dot"></i><span id="statustext">Connecting …</span></p>
+    <dl id="facts"></dl>
+    <div id="settings" hidden>
+    <dl>
+      <div><dt data-t="setLang">Language</dt><dd><span class="seg" role="group" data-t-aria="setLang">
+        <button type="button" data-set="lang" data-val="de">DE</button><button type="button" data-set="lang" data-val="en">EN</button></span></dd></div>
+      <div><dt data-t="setRsrp">RSRP</dt><dd><span class="seg" role="group" data-t-aria="setRsrp">
+        <button type="button" data-set="rsrp" data-val="value" data-t="rsrpNum">Number</button><button type="button" data-set="rsrp" data-val="rating" data-t="rsrpRate">Rating</button></span></dd></div>
+      <div><dt><span data-t="setSnr">Show SNR</span><svg class="xp" viewBox="0 0 24 24" role="img" data-t-aria="snrHint" data-t-title="snrHint"><path d="M9 3h6M10 3v6.2L4.8 18.3A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.7L14 9.2V3M7.5 14.5h9"/></svg></dt><dd><span class="seg" role="group" data-t-aria="setSnr">
+        <button type="button" data-set="snr" data-val="off" data-t="segOff">Off</button><button type="button" data-set="snr" data-val="on" data-t="segOn">On</button></span></dd></div>
+      <div><dt data-t="setWifi">Wi-Fi</dt><dd><span class="seg" role="group" data-t-aria="setWifi">
+        <button type="button" data-set="wifi" data-val="simple" data-t="wifiSimple">Simple</button><button type="button" data-set="wifi" data-val="bands" data-t="wifiBands">Band</button></span></dd></div>
+    </dl>
+    <div id="actionsSlot"></div>
+    </div>
+    <div class="actions">
+      <div id="wifiSimple">
+        <button id="sWifi" type="button" aria-pressed="false" hidden><span data-t="wifiAll">Wi-Fi</span><b>–</b></button>
+        <button id="sGuest" type="button" aria-pressed="false" hidden><span data-t="guestAll">Guest Wi-Fi</span><b>–</b></button>
+      </div>
+      <div id="wifiBands" hidden>
+        <div class="wrow"><span data-t="rowWifi">Wi-Fi</span><span class="chips">
+          <button id="w2" class="chip" type="button" aria-pressed="false" data-t="ghz24">2.4 GHz</button><button id="w5" class="chip" type="button" aria-pressed="false" data-t="ghz5">5 GHz</button></span></div>
+        <div class="wrow" id="guestRow" hidden><span data-t="rowGuest">Guest</span><span class="chips">
+          <button id="g2" class="chip" type="button" aria-pressed="false" data-t="ghz24">2.4 GHz</button><button id="g5" class="chip" type="button" aria-pressed="false" data-t="ghz5">5 GHz</button></span></div>
+      </div>
+      <button id="reboot" type="button" class="danger"><span data-t="reboot">Restart router</span></button>
+    </div>
+  </aside>
+  <main>
+    <div class="minihost"><div class="veil"></div></div>
+    <section class="traffic" data-t-aria="trafficAria">
+      <div class="rates">
+        <div class="rate"><b><i class="arr" aria-hidden="true">↓</i><span class="v" id="rx">–</span></b><span>Download in Mbit/s</span></div>
+        <div class="rate"><b><i class="arr" aria-hidden="true">↑</i><span class="v" id="tx">–</span></b><span>Upload in Mbit/s</span></div>
+        <span class="unit" aria-hidden="true">Mbit/s</span>
+      </div>
+      <div class="gslot"></div>
+      <p class="note"><span id="period"></span><span id="avg"></span></p>
+      <svg id="spark" viewBox="0 0 600 96" preserveAspectRatio="none" role="img" data-t-aria="sparkAria"></svg>
+    </section>
+
+    <h2 data-t="overview">Overview</h2>
+    <div class="stats">
+      <div><b id="clients">–</b><span id="clientsub"></span></div>
+      <div><b id="cpu">–</b><span data-t="cpu">CPU usage</span></div>
+      <div><b id="mem">–</b><span data-t="mem">Memory</span></div>
+      <div id="dataTile"><b id="data">–</b><span id="datasub"></span><span class="bar" id="databar" hidden><i></i></span></div>
+    </div>
+
+    <h2 data-t="devices">Devices</h2>
+    <input id="q" type="search" data-t-ph="search" data-t-aria="searchAria">
+    <div class="scroll">
+      <table>
+        <thead><tr><th data-t="thDev">Device</th><th data-t="thIp">IP address</th><th data-t="thMac">MAC address</th><th data-t="thConn">Connection</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <h2 data-t="resv">Static IP addresses</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th data-t="thDev">Device</th><th data-t="thIp">IP address</th><th data-t="thMac">MAC address</th><th data-t="thStatus">Status</th></tr></thead>
+        <tbody id="resvrows"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="resvempty" data-t="noResv" hidden></p>
+
+    <h2 data-t="portfw">Port forwarding</h2>
+    <form class="pfform" id="pfform">
+      <label data-t="pfName">Name<input name="name" maxlength="32" required></label>
+      <label data-t="pfExt">External port<input name="external_port" type="number" min="1" max="65535" required></label>
+      <label data-t="pfIp">Internal IP<input name="internal_ip" required pattern="^(\d{1,3}\.){3}\d{1,3}$"></label>
+      <label data-t="pfInt">Internal port<input name="internal_port" type="number" min="1" max="65535" required></label>
+      <label data-t="pfProto">Protocol<select name="protocol"><option>TCP</option><option>UDP</option></select></label>
+      <button type="submit" data-t="pfAdd">Add</button>
+    </form>
+    <div class="scroll">
+      <table>
+        <thead><tr><th data-t="pfName">Name</th><th data-t="pfExt">External port</th><th data-t="pfInt2">Internal address</th><th data-t="thStatus">Status</th><th></th></tr></thead>
+        <tbody id="pfrows"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="pfempty" data-t="noPf" hidden></p>
+  </main>
+</div>
+<div class="tip" id="tip" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let data = null;
+
+/* ---------- Settings (stored in this browser only) ---------- */
+const S = {lang: (navigator.language || "").toLowerCase().startsWith("de") ? "de" : "en", rsrp: "value", snr: false, wifi: "simple"};
+try { Object.assign(S, JSON.parse(localStorage.getItem("gway") || "{}")); } catch {}
+if (!["de", "en"].includes(S.lang)) S.lang = "en";
+if (!["value", "rating"].includes(S.rsrp)) S.rsrp = "value";
+if (!["simple", "bands"].includes(S.wifi)) S.wifi = "simple";
+S.snr = S.snr === true;
+const saveS = () => { try { localStorage.setItem("gway", JSON.stringify(S)); } catch {} };
+
+/* ---------- Texts ---------- */
+const I = {
+  de: {
+    router: "Router", connecting: "Verbinde …", connected: "Verbunden",
+    e_unreachable: "Router nicht erreichbar. Ist er eingeschaltet und im Netzwerk?",
+    e_auth: "Anmeldung am Router fehlgeschlagen. Bitte das Passwort in der Add-on-Konfiguration prüfen.",
+    e_session: "Der Router hat die Anfrage abgelehnt. Vermutlich ist gerade jemand anderes als Admin angemeldet. Das Add-on versucht es gleich nochmal.",
+    e_other: "Etwas ist schiefgelaufen. Das Add-on versucht es gleich nochmal.",
+    e_reboot: "Router startet neu, das dauert etwa 2 Minuten",
+    e_addon: "Keine Verbindung zum Add-on. Läuft es in Home Assistant?",
+    lastUpdate: (time, err) => `Letzter Stand von ${time}. Technisch: ${err || "-"}`,
+    settings: "Einstellungen", setLang: "Sprache", setRsrp: "RSRP", rsrpNum: "Zahl", rsrpRate: "Bewertung",
+    setSnr: "SNR anzeigen", snrHint: "Experimentell: Rohwert des Routers geteilt durch 10, noch nicht bestätigt", segOff: "Aus", segOn: "An",
+    fw: "Firmware", wan: "WAN-IP", net: "Netz", isp: "Anbieter", rsrp: "Empfang RSRP", snr: "Rauschabstand SNR",
+    good: "gut", fair: "mittel", poor: "schlecht",
+    wifi24: "WLAN 2,4 GHz", wifi5: "WLAN 5 GHz", guest24: "Gast-WLAN 2,4 GHz", guest5: "Gast-WLAN 5 GHz", wifiAll: "WLAN", guestAll: "Gast-WLAN", rowWifi: "WLAN", rowGuest: "Gast",
+    ghz24: "2,4 GHz", ghz5: "5 GHz", pillMixed: "teils", setWifi: "WLAN", wifiSimple: "Einfach", wifiBands: "Band", copied: "Kopiert", copyFailed: "Kopieren nicht möglich",
+    pillOn: "an", pillOff: "aus", reboot: "Router neu starten",
+    trafficAria: "Internet-Traffic", sparkAria: "Verlauf der letzten Minuten",
+    overview: "Übersicht", devConnected: "Geräte verbunden", devSub: (w, wl, g) => `Geräte: ${w} Kabel, ${wl} WLAN, ${g} Gast`,
+    cpu: "CPU-Auslastung", mem: "Arbeitsspeicher",
+    dataUsage: "Datenverbrauch", dataOf: l => `von ${l}`, dataSince: d => `Seit ${d}`,
+    devices: "Geräte", search: "Name, IP oder MAC suchen", searchAria: "Geräte durchsuchen",
+    thDev: "Gerät", thIp: "IP-Adresse", thMac: "MAC-Adresse", thConn: "Verbindung", thStatus: "Status",
+    resv: "Feste IP-Adressen", noResv: "Keine Reservierungen eingerichtet.", unnamed: "(ohne Namen)", offline: "(gerade offline)", active: "aktiv",
+    portfw: "Portweiterleitung", pfName: "Name", pfExt: "Externer Port", pfInt: "Interne IP", pfInt2: "Interne Adresse", pfProto: "Protokoll", pfAdd: "Hinzufügen",
+    noPf: "Keine Portweiterleitungen eingerichtet.", pfDel: "Löschen", pfConfirmDel: n => `Portweiterleitung "${n}" löschen?`, pfFailed: "Regel konnte nicht angelegt werden. Port schon belegt?",
+    history: "Verlauf wird aufgebaut …", last: d => `Letzte ${d}`,
+    dS: n => `${n} Sek.`, dM: n => `${n} Min.`, dH: (h, m) => `${h} Std. ${m} Min.`, dD: (d, h) => `${d} Tg. ${h} Std.`,
+    confirmOff: l => `${l} ausschalten? Geräte, die darüber verbunden sind, verlieren die Verbindung.`, confirmOn: l => `${l} einschalten?`,
+    confirmReboot: "Router wirklich neu starten? Das Internet ist danach etwa 2 Minuten weg.",
+    failed: "Aktion fehlgeschlagen", noAddon: "Add-on nicht erreichbar",
+    conn: {wired: "Kabel", host_2g: "WLAN 2,4 GHz", host_5g: "WLAN 5 GHz", host_6g: "WLAN 6 GHz", guest_2g: "Gast 2,4 GHz", guest_5g: "Gast 5 GHz", guest_6g: "Gast 6 GHz"},
+  },
+  en: {
+    router: "Router", connecting: "Connecting …", connected: "Connected",
+    e_unreachable: "Router unreachable. Is it powered on and on the network?",
+    e_auth: "Login to the router failed. Please check the password in the add-on configuration.",
+    e_session: "The router rejected the request. Someone else is probably logged in as admin. The add-on will try again shortly.",
+    e_other: "Something went wrong. The add-on will try again shortly.",
+    e_reboot: "Router is restarting, this takes about 2 minutes",
+    e_addon: "Cannot reach the add-on. Is it running in Home Assistant?",
+    lastUpdate: (time, err) => `Last update at ${time}. Technical: ${err || "-"}`,
+    settings: "Settings", setLang: "Language", setRsrp: "RSRP", rsrpNum: "Number", rsrpRate: "Rating",
+    setSnr: "Show SNR", snrHint: "Experimental: the router's raw value divided by 10, not yet confirmed", segOff: "Off", segOn: "On",
+    fw: "Firmware", wan: "WAN IP", net: "Network", isp: "Provider", rsrp: "Signal RSRP", snr: "Signal-to-noise SNR",
+    good: "good", fair: "fair", poor: "poor",
+    wifi24: "Wi-Fi 2.4 GHz", wifi5: "Wi-Fi 5 GHz", guest24: "Guest Wi-Fi 2.4 GHz", guest5: "Guest Wi-Fi 5 GHz", wifiAll: "Wi-Fi", guestAll: "Guest Wi-Fi", rowWifi: "Wi-Fi", rowGuest: "Guest",
+    ghz24: "2.4 GHz", ghz5: "5 GHz", pillMixed: "partial", setWifi: "Wi-Fi", wifiSimple: "Simple", wifiBands: "Band", copied: "Copied", copyFailed: "Copy failed",
+    pillOn: "on", pillOff: "off", reboot: "Restart router",
+    trafficAria: "Internet traffic", sparkAria: "History of the last minutes",
+    overview: "Overview", devConnected: "Devices connected", devSub: (w, wl, g) => `Devices: ${w} wired, ${wl} Wi-Fi, ${g} guest`,
+    cpu: "CPU usage", mem: "Memory",
+    dataUsage: "Data usage", dataOf: l => `of ${l}`, dataSince: d => `Since ${d}`,
+    devices: "Devices", search: "Search name, IP or MAC", searchAria: "Search devices",
+    thDev: "Device", thIp: "IP address", thMac: "MAC address", thConn: "Connection", thStatus: "Status",
+    resv: "Static IP addresses", noResv: "No reservations set up.", unnamed: "(unnamed)", offline: "(currently offline)", active: "active",
+    portfw: "Port forwarding", pfName: "Name", pfExt: "External port", pfInt: "Internal IP", pfInt2: "Internal address", pfProto: "Protocol", pfAdd: "Add",
+    noPf: "No port forwarding rules set up.", pfDel: "Delete", pfConfirmDel: n => `Delete port forwarding rule "${n}"?`, pfFailed: "Could not add the rule. Port already in use?",
+    history: "Building history …", last: d => `Last ${d}`,
+    dS: n => `${n} sec`, dM: n => `${n} min`, dH: (h, m) => `${h} h ${m} min`, dD: (d, h) => `${d} d ${h} h`,
+    confirmOff: l => `Turn off ${l}? Devices connected through it will lose their connection.`, confirmOn: l => `Turn on ${l}?`,
+    confirmReboot: "Really restart the router? The internet will be down for about 2 minutes.",
+    failed: "Action failed", noAddon: "Cannot reach the add-on",
+    conn: {wired: "Wired", host_2g: "Wi-Fi 2.4 GHz", host_5g: "Wi-Fi 5 GHz", host_6g: "Wi-Fi 6 GHz", guest_2g: "Guest 2.4 GHz", guest_5g: "Guest 5 GHz", guest_6g: "Guest 6 GHz"},
+  },
+};
+const t = (k, ...a) => { const v = I[S.lang][k]; return typeof v === "function" ? v(...a) : v; };
+const dec = s => S.lang === "de" ? s.replace(".", ",") : s;
+const clock = ts => new Date(ts * 1000).toLocaleTimeString(S.lang === "de" ? "de-DE" : "en-GB");
+
+const mbit = b => b == null ? "–" : dec((b * 8 / 1e6).toFixed(b * 8 / 1e6 < 10 ? 2 : 1));
+const pct = v => v == null ? "–" : Math.round(v <= 1 ? v * 100 : v) + " %";
+const ipKey = ip => ip.split(".").reduce((a, x) => a * 256 + (+x || 0), 0);
+const val = (v, unit) => v == null || v === "" ? "–" : `${v} ${unit}`;
+const snrDb = v => v == null ? "–" : dec((v / 10).toFixed(1)) + " dB"; // raw value / 10 (assumption, not confirmed yet)
+const rating = v => v == null ? "–" : v >= -90 ? t("good") : v >= -100 ? t("fair") : t("poor");
+// Data volume in GB (1 GB = 1e9 bytes): whole numbers stay whole, otherwise one decimal (none from 100 GB)
+const gbStr = b => { const v = b / 1e9; return dec(Number.isInteger(v) ? String(v) : v.toFixed(v < 100 ? 1 : 0)); };
+
+const ERR = {unreachable: "e_unreachable", auth: "e_auth", session: "e_session", other: "e_other", reboot: "e_reboot", starting: "connecting"};
+const friendly = d => t(ERR[d.kind] || "e_other");
+
+function tableRows(tbody, list, copyCols = []) {
+  tbody.replaceChildren(...list.map(cells => {
+    const tr = document.createElement("tr");
+    cells.forEach((c, i) => {
+      const td = document.createElement("td");
+      if (i === 0) { const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = c; td.append(nm); }
+      else if (copyCols.includes(i)) { const b = document.createElement("button"); b.type = "button"; b.className = "cp"; b.textContent = c; td.append(b); }
+      else td.textContent = c;
+      tr.append(td);
+    });
+    return tr;
+  }));
+}
+
+function facts(d) {
+  const l = d.lte, fw = d.firmware?.firmware || "";
+  const m = fw.match(/^(\S+).*Build\s+(\d+)/);
+  const byRating = S.rsrp === "rating";
+  const rows = [
+    [t("fw"), m ? `${m[1]} (Build ${m[2]})` : fw, fw],
+    [t("wan"), d.overview.wan_ip], [t("net"), l.network], [t("isp"), l.isp],
+    [t("rsrp"), byRating ? rating(l.rsrp) : val(l.rsrp, "dBm"), byRating ? val(l.rsrp, "dBm") : ""],
+  ];
+  if (S.snr) rows.push([t("snr"), snrDb(l.snr)]);
+  $("#facts").replaceChildren(...rows.map(([k, v, tip]) => {
+    const row = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = k; dd.textContent = v || "–"; if (tip) dd.title = tip;
+    row.append(dt, dd); return row;
+  }));
+}
+
+// State of a group of bands: "true" (all on), "false" (all off), "mixed", or null (router does not report them)
+const bandState = list => { const v = list.filter(x => x != null); return !v.length ? null : v.every(Boolean) ? "true" : v.some(Boolean) ? "mixed" : "false"; };
+
+function bands(o) {
+  // per-band chips
+  [["#w2", o.wifi_2g], ["#w5", o.wifi_5g], ["#g2", o.guest_wifi_2g], ["#g5", o.guest_wifi_5g]].forEach(([id, on]) => {
+    const b = $(id); b.hidden = on == null; b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  $("#guestRow").hidden = o.guest_wifi_2g == null && o.guest_wifi_5g == null;
+  // combined switches (default view)
+  [["#sWifi", bandState([o.wifi_2g, o.wifi_5g])], ["#sGuest", bandState([o.guest_wifi_2g, o.guest_wifi_5g])]].forEach(([id, st]) => {
+    const b = $(id); b.hidden = st == null;
+    if (st == null) return;
+    b.setAttribute("aria-pressed", st);
+    b.querySelector("b").textContent = st === "true" ? t("pillOn") : st === "false" ? t("pillOff") : t("pillMixed");
+  });
+}
+
+// The graph keeps a fixed scale (pixels per sample, taken from the desktop layout: 700px for 90 samples).
+// A narrower graph shows fewer samples; 90 samples (about 12 minutes) is the maximum.
+const PX_PER_SAMPLE = 700 / 90, MAX_SAMPLES = 90;
+let latestHist = [], drawn = [], sparkMax = 1, hovering = false, shownN = MAX_SAMPLES;
+const svgEl = $("#spark"), tip = $("#tip");
+
+const windowSize = () => Math.max(2, Math.min(MAX_SAMPLES, Math.round(svgEl.getBoundingClientRect().width / PX_PER_SAMPLE)));
+
+function updatePeriod() {
+  const w = drawn;
+  $("#period").textContent = w.length < 2 ? t("history") : t("last", fmtDur(w[w.length - 1][0] - w[0][0]));
+}
+
+function drawSpark() {
+  shownN = windowSize();
+  drawn = latestHist.slice(-shownN);
+  updatePeriod();
+  if (drawn.length < 2) { svgEl.replaceChildren(); return; }
+  const line = (i, dash) => {
+    const pts = drawn.map((h, n) => `${(n / (drawn.length - 1) * 600).toFixed(1)},${(92 - (h[i] || 0) / sparkMax * 88).toFixed(1)}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"${dash ? ' stroke-dasharray="6 5"' : ""}/>`;
+  };
+  svgEl.innerHTML = line(1, false) + line(2, true);
+  svgEl.style.color = "var(--ink)";
+}
+
+function spark(hist) {
+  latestHist = hist;
+  if (hovering) return; // the graph stands still while you look at it
+  sparkMax = Math.max(1, ...hist.flatMap(h => [h[1] || 0, h[2] || 0])); // scale over the whole history, so it does not jump when the window changes
+  drawSpark();
+}
+
+function fmtDur(s) {
+  if (s < 90) return t("dS", Math.max(s, 1));
+  const m = Math.round(s / 60);
+  if (m < 90) return t("dM", m);
+  const h = Math.floor(m / 60);
+  if (h < 48) return t("dH", h, m % 60);
+  return t("dD", Math.floor(h / 24), h % 24);
+}
+
+// Right: average since the first start of the add-on (calculated by the backend, kept across restarts). The time span on the left is set in drawSpark().
+function summary(d) {
+  const a = d.avg || {};
+  $("#avg").textContent = a.since && a.rx != null ? `Ø ↓ ${mbit(a.rx)} · ↑ ${mbit(a.tx)} Mbit/s` : "";
+}
+
+// Data usage tile: used volume, optional limit with a bar, start of the current period as tooltip
+function dataTile(d) {
+  const x = d.data;
+  if (!x) return;
+  $("#data").textContent = `${gbStr(x.used)} GB`;
+  $("#datasub").textContent = x.limit ? t("dataOf", `${gbStr(x.limit)} GB`) : t("dataUsage");
+  const bar = $("#databar");
+  bar.hidden = !x.limit;
+  if (x.limit) {
+    const p = Math.min(100, x.used / x.limit * 100);
+    bar.firstElementChild.style.width = p.toFixed(1) + "%";
+    bar.classList.toggle("warn", p >= 90);
+  }
+  const from = x.since ? new Date(x.since + "T00:00:00").toLocaleDateString(S.lang === "de" ? "de-DE" : "en-GB", {day: "numeric", month: "numeric"}) : "";
+  $("#dataTile").title = from ? `${t("dataUsage")}: ${t("dataSince", from)}` : "";
+}
+
+function marks(i) {
+  svgEl.querySelectorAll(".hov").forEach(n => n.remove());
+  const h = drawn[i], x = (i / (drawn.length - 1) * 600).toFixed(1), y = v => (92 - (v || 0) / sparkMax * 88).toFixed(1);
+  const mk = attrs => {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    n.setAttribute("class", "hov");
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    svgEl.append(n);
+  };
+  const base = {stroke: "currentColor", "vector-effect": "non-scaling-stroke"};
+  mk({...base, x1: x, x2: x, y1: 0, y2: 96, "stroke-width": 1.5, "stroke-dasharray": "3 3", opacity: .5});
+  [1, 2].forEach(k => mk({...base, x1: x, x2: x, y1: y(h[k]), y2: y(h[k]), "stroke-width": 9, "stroke-linecap": "round"}));
+}
+
+function hoverAt(e) {
+  if (drawn.length < 2) return;
+  hovering = true;
+  const r = svgEl.getBoundingClientRect();
+  const i = Math.max(0, Math.min(drawn.length - 1, Math.round((e.clientX - r.left) / r.width * (drawn.length - 1))));
+  const h = drawn[i];
+  marks(i);
+  const tm = document.createElement("small"), v = document.createElement("span");
+  tm.textContent = clock(h[0]);
+  v.textContent = `↓ ${mbit(h[1])} · ↑ ${mbit(h[2])} Mbit/s`;
+  tip.replaceChildren(tm, v);
+  tip.style.display = "block";
+  const w = tip.offsetWidth, ht = tip.offsetHeight;
+  let left = e.clientX + 16, top = e.clientY - ht - 12;
+  if (left + w > innerWidth - 8) left = e.clientX - w - 16;
+  if (top < 8) top = e.clientY + 18;
+  tip.style.left = Math.max(8, left) + "px";
+  tip.style.top = top + "px";
+}
+
+function hoverEnd() {
+  if (!hovering) return;
+  hovering = false;
+  tip.style.display = "none";
+  spark(latestHist);
+}
+svgEl.addEventListener("pointermove", hoverAt);
+svgEl.addEventListener("pointerdown", hoverAt);
+svgEl.addEventListener("pointerleave", hoverEnd);
+svgEl.addEventListener("pointercancel", hoverEnd);
+
+function devices() {
+  const q = $("#q").value.trim().toLowerCase();
+  const list = (data?.devices || []).filter(d => !q || [d.name, d.ip, d.mac].some(x => x.toLowerCase().includes(q)))
+    .sort((a, b) => ipKey(a.ip) - ipKey(b.ip));
+  tableRows($("#rows"), list.map(d => [d.name || t("unnamed"), d.ip, d.mac, I[S.lang].conn[d.type] || d.type]), [1, 2]);
+}
+
+function reservations() {
+  const list = [...(data?.reservations || [])].sort((a, b) => ipKey(a.ip) - ipKey(b.ip));
+  const norm = m => m.toUpperCase().replace(/[^0-9A-F]/g, "");
+  const online = new Map((data?.devices || []).flatMap(d => [[norm(d.mac), d], [d.ip, d]]));
+  const nameOf = r => {
+    if (r.name) return r.name;
+    const d = online.get(norm(r.mac)) || online.get(r.ip);
+    return d ? d.name || t("unnamed") : t("offline");
+  };
+  tableRows($("#resvrows"), list.map(r => [nameOf(r), r.ip, r.mac, r.enabled ? t("active") : t("pillOff")]), [1, 2]);
+  $("#resvempty").hidden = list.length > 0;
+}
+
+function portForwards() {
+  fetch("api/portforwards", {cache: "no-store"}).then(r => r.ok ? r.json() : []).then(list => {
+    const rows = list.map(e => {
+      const tr = document.createElement("tr");
+      const nm = document.createElement("td"); const nmw = document.createElement("div"); nmw.className = "nm"; nmw.textContent = e.name || t("unnamed"); nm.append(nmw);
+      const ext = document.createElement("td"); ext.textContent = `${e.external_port} (${e.protocol})`;
+      const dst = document.createElement("td"); dst.textContent = `${e.internal_ip}:${e.internal_port}`;
+      const st = document.createElement("td"); st.textContent = e.enabled ? t("active") : t("pillOff");
+      const del = document.createElement("td"); del.className = "pfdel";
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "rm"; btn.textContent = t("pfDel");
+      btn.addEventListener("click", () => {
+        if (!confirm(t("pfConfirmDel", e.name || t("unnamed")))) return;
+        act({action: "delete_port_forward", id: e.id}, btn).then(portForwards);
+      });
+      del.append(btn);
+      tr.append(nm, ext, dst, st, del);
+      return tr;
+    });
+    $("#pfrows").replaceChildren(...rows);
+    $("#pfempty").hidden = list.length > 0;
+  }).catch(() => {});
+}
+
+$("#pfform").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = {
+    action: "add_port_forward",
+    name: f.get("name").trim(),
+    external_port: f.get("external_port"),
+    internal_ip: f.get("internal_ip").trim(),
+    internal_port: f.get("internal_port"),
+    protocol: f.get("protocol"),
+  };
+  const btn = e.target.querySelector("button[type=submit]");
+  act(body, btn, t("pfFailed")).then(() => { e.target.reset(); portForwards(); });
+});
+
+function render(d) {
+  data = d;
+  $("#dot").classList.toggle("err", !d.ok);
+  if (!d.updated) { $("#statustext").textContent = friendly(d); $("#statustext").title = d.ok ? "" : d.error || ""; return; }
+  $("#statustext").textContent = d.ok ? t("connected") : friendly(d);
+  $("#statustext").title = d.ok ? "" : t("lastUpdate", clock(d.updated), d.error);
+  $("#model").textContent = d.firmware?.model || t("router");
+  $("#rx").textContent = mbit(d.lte.rx);
+  $("#tx").textContent = mbit(d.lte.tx);
+  const o = d.overview;
+  $("#clients").textContent = o.clients_total ?? "–";
+  $("#clientsub").textContent = t("devSub", o.wired, o.wifi, o.guest);
+  $("#cpu").textContent = pct(o.cpu);
+  $("#mem").textContent = pct(o.mem);
+  facts(d); bands(o); spark(d.history || []); summary(d); dataTile(d); devices(); reservations();
+}
+
+async function load() {
+  try { render(await (await fetch("api/state", {cache: "no-store"})).json()); }
+  catch { $("#dot").classList.add("err"); $("#statustext").textContent = t("e_addon"); }
+}
+
+async function act(body, btn, failMsg) {
+  btn.disabled = true;
+  try {
+    const r = await fetch("api/action", {method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "router-ui"}, body: JSON.stringify(body)});
+    if (!r.ok) alert((await r.json().catch(() => ({}))).error || failMsg || t("failed"));
+  } catch { alert(t("noAddon")); }
+  btn.disabled = false; load();
+}
+
+function toggleBand(id, band, key) {
+  $(id).addEventListener("click", () => {
+    const on = $(id).getAttribute("aria-pressed") === "true", label = t(key);
+    if (confirm(on ? t("confirmOff", label) : t("confirmOn", label))) act({action: "wifi", band, enable: !on}, $(id));
+  });
+}
+const OV = {"2g": "wifi_2g", "5g": "wifi_5g", guest2g: "guest_wifi_2g", guest5g: "guest_wifi_5g"};
+// Combined switch: turns all reported bands of the group on (if off or mixed) or off (if all on)
+function toggleGroup(id, list, key) {
+  $(id).addEventListener("click", () => {
+    const o = data?.overview;
+    const present = o ? list.filter(b => o[OV[b]] != null) : [];
+    if (!present.length) return;
+    const turnOn = $(id).getAttribute("aria-pressed") !== "true", label = t(key);
+    if (confirm(turnOn ? t("confirmOn", label) : t("confirmOff", label))) act({action: "wifi", bands: present, enable: turnOn}, $(id));
+  });
+}
+toggleGroup("#sWifi", ["2g", "5g"], "wifiAll");
+toggleGroup("#sGuest", ["guest2g", "guest5g"], "guestAll");
+toggleBand("#w2", "2g", "wifi24");
+toggleBand("#w5", "5g", "wifi5");
+toggleBand("#g2", "guest2g", "guest24");
+toggleBand("#g5", "guest5g", "guest5");
+$("#reboot").addEventListener("click", () => {
+  if (confirm(t("confirmReboot"))) act({action: "reboot"}, $("#reboot"));
+});
+$("#q").addEventListener("input", devices);
+
+/* ---------- Copy IP / MAC on click ---------- */
+// navigator.clipboard only exists on secure origins (https/localhost); the add-on usually runs on plain http, so fall back to execCommand.
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+  document.body.append(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  ta.remove();
+  return ok;
+}
+let toastTimer;
+function toast(msg) {
+  const el = $("#toast"); el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 1600);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button.cp");
+  if (!b) return;
+  const text = b.textContent;
+  toast(await copyText(text) ? `${t("copied")}: ${text}` : t("copyFailed"));
+});
+
+/* ---------- Settings panel ---------- */
+$("#gear").addEventListener("click", () => {
+  const open = $("#settings").hidden;
+  $("#settings").hidden = !open;
+  $("#gear").setAttribute("aria-expanded", String(open));
+});
+$$("#settings [data-set]").forEach(b => b.addEventListener("click", () => {
+  const k = b.dataset.set, v = b.dataset.val;
+  S[k] = k === "snr" ? v === "on" : v;
+  saveS(); applyLang();
+}));
+
+function applyLang() {
+  document.documentElement.lang = S.lang;
+  $$("[data-t]").forEach(e => e.textContent = t(e.dataset.t));
+  $$("[data-t-ph]").forEach(e => e.placeholder = t(e.dataset.tPh));
+  $$("[data-t-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.tAria)));
+  $$("[data-t-title]").forEach(e => e.title = t(e.dataset.tTitle));
+  $$("#settings [data-set]").forEach(b => {
+    const cur = b.dataset.set === "snr" ? (S.snr ? "on" : "off") : S[b.dataset.set];
+    b.setAttribute("aria-pressed", String(cur === b.dataset.val));
+  });
+  $("#wifiSimple").hidden = S.wifi !== "simple";
+  $("#wifiBands").hidden = S.wifi !== "bands";
+  if (data) render(data);
+  else {
+    $("#statustext").textContent = t("connecting"); $("#model").textContent = t("router");
+    $("#period").textContent = t("history"); $("#clientsub").textContent = t("devConnected");
+    $("#datasub").textContent = t("dataUsage");
+  }
+  portForwards();
+  devices(); reservations();
+  measure(); // label widths differ per language, so re-measure the compact bar
+}
+
+/* ---------- Traffic card: shrinks while scrolling from full height to bar height ----------
+   The bottom edge of the card follows the top edge of the content below (height = H - scrolled pixels).
+   HC = bar height. Progress p = scrolled distance / (H - HC). */
+const HC = 56;
+const rootEl = document.documentElement, card = $(".traffic"), mainEl = $("main"), slot = $(".gslot");
+let queued = false, dist = 1;
+
+function progress() {
+  queued = false;
+  const top0 = innerWidth > 820 ? 40 : 12;
+  const s = Math.max(0, top0 - mainEl.getBoundingClientRect().top);
+  rootEl.style.setProperty("--p", Math.min(1, s / dist).toFixed(4));
+  if (!hovering && latestHist.length && windowSize() !== shownN) drawSpark(); // narrower graph, fewer samples
+}
+
+function measure() {
+  // Measure the collapsed state: right edge of the unit + 16px gap + 18px right padding = reserved width
+  rootEl.style.setProperty("--p", "1");
+  const rw = card.querySelector(".rates").lastElementChild.getBoundingClientRect().right - card.getBoundingClientRect().left;
+  rootEl.style.setProperty("--res", Math.ceil(rw) + 34);
+  rootEl.style.setProperty("--p", "0");
+  card.style.height = "auto"; card.style.marginBottom = "40px";
+  const H = card.offsetHeight;
+  dist = Math.max(1, H - HC);
+  rootEl.style.setProperty("--H", H);
+  rootEl.style.setProperty("--D", dist);
+  rootEl.style.setProperty("--gy", slot.offsetTop);
+  card.style.height = ""; card.style.marginBottom = "";
+  progress();
+}
+
+addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(progress); } }, {passive: true});
+addEventListener("resize", measure);
+// On narrow screens the Wi-Fi switches and the restart button live in the settings panel
+const narrow = matchMedia("(max-width: 820px)");
+const placeActions = () => (narrow.matches ? $("#actionsSlot") : $("aside")).append($(".actions"));
+narrow.addEventListener("change", placeActions);
+placeActions();
+applyLang();
+if (document.fonts) document.fonts.ready.then(measure);
+load(); setInterval(load, 4000);
+portForwards();
+</script>
+</body>
+</html>
