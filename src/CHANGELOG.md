@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+- New "Port forwarding" section: shows existing rules and lets you add and delete them
+- Add a rule with a name, external port, internal IP and port, and protocol (TCP/UDP)
+- Reverse-engineered from the router's own web interface (a different, JSON-based dialect of its encrypted API than the rest of GWAY uses); only tested with the WAN interface named "MBB" (the mobile connection), since that's what this add-on targets
+- The port-forwarding list is not part of the regular 8-second polling; it loads once and refreshes after you add or delete a rule
+
 ## 0.7.0
 - New data usage tile next to devices, CPU and memory: four tiles in a row on the desktop, 2x2 on small screens
 - The tile shows the data used in the current period; with a limit it also shows "of X GB" and a progress bar (turns red from 90 %)

@@ -40,6 +40,16 @@ BANDS = {
 
 DHCP_EVERY = 60
 
+# Port forwarding (NAT) uses a separate, newer JSON dialect of the router's
+# encrypted cgi_gdpr endpoint, reverse-engineered by hooking $.Iencryptor in
+# the router's own web UI. It is unrelated to the ActItem/text format the
+# tplinkrouterc6u library speaks for everything else, but rides the same
+# encrypted transport, so it is sent through the library's low-level
+# _request() rather than its req_act().
+PORTMAPPING_OID = "DEV2_PORTMAPPING"
+PORTMAPPING_CONN = "MBB"  # the router's cellular WAN interface; this add-on targets 5G-only routers
+NO_STACK = "0,0,0,0,0,0"
+
 # Persistent storage (the add-on's /data folder survives restarts and updates)
 DATA_DIR = Path(os.environ.get("GWAY_DATA", "/data"))
 STORE = DATA_DIR / "gway.json"
@@ -420,6 +430,90 @@ class Poller(threading.Thread):
             "source": "router" if u.get("last_total") is not None else "speed",
         }
 
+    def _gdpr_call(self, operation, oid, data):
+        """Low-level call for the JSON dialect (port forwarding). Caller holds self.io."""
+        payload = json.dumps({"data": data, "operation": operation, "oid": oid})
+        url = self.client._get_url("cgi_gdpr")
+        code, response = self.client._request(url, data_str=payload, encrypt=True)
+
+        if code != 200:
+            raise ClientException(f"cgi_gdpr request failed with HTTP {code}")
+
+        return json.loads(response) if response else {}
+
+    def get_port_forwards(self):
+        with self.io:
+            if self.client is None:
+                self.connect()
+
+            resp = self._gdpr_call(
+                "gl", PORTMAPPING_OID, {"stack": NO_STACK, "pstack": NO_STACK}
+            )
+
+        entries = resp.get("data") or []
+
+        if isinstance(entries, dict):
+            entries = [entries]
+
+        return [
+            {
+                "id": e.get("stack"),
+                "name": e.get("X_TP_ServiceName", ""),
+                "external_port": e.get("externalPort"),
+                "internal_port": e.get("internalPort"),
+                "internal_ip": e.get("internalClient"),
+                "protocol": e.get("protocol"),
+                "enabled": e.get("enable") == "1",
+            }
+            for e in entries
+        ]
+
+    def add_port_forward(self, name, external_port, internal_ip, internal_port, protocol):
+        external_port = str(int(external_port))
+        internal_port = str(int(internal_port))
+
+        if not (1 <= int(external_port) <= 65535 and 1 <= int(internal_port) <= 65535):
+            raise ValueError("Port out of range")
+
+        if protocol not in ("TCP", "UDP"):
+            raise ValueError("Unknown protocol")
+
+        data = {
+            "enable": "1",
+            "X_TP_ConnName": PORTMAPPING_CONN,
+            "protocol": protocol,
+            "X_TP_ServiceName": name[:32],
+            "X_TP_AddrType": "0",
+            "internalClient": internal_ip,
+            "externalPort": external_port,
+            "externalPortEndRange": external_port,
+            "X_TP_InternalPortEndRange": internal_port,
+            "internalPort": internal_port,
+            "stack": NO_STACK,
+            "pstack": NO_STACK,
+        }
+
+        with self.io:
+            if self.client is None:
+                self.connect()
+
+            resp = self._gdpr_call("ao", PORTMAPPING_OID, data)
+
+        if not resp.get("success"):
+            raise ClientException(f"Router rejected the rule: {resp}")
+
+    def delete_port_forward(self, entry_id):
+        data = {"stack": entry_id, "pstack": NO_STACK}
+
+        with self.io:
+            if self.client is None:
+                self.connect()
+
+            resp = self._gdpr_call("do", PORTMAPPING_OID, data)
+
+        if not resp.get("success"):
+            raise ClientException(f"Router rejected the deletion: {resp}")
+
     def act(self, body):
         action = body.get("action")
 
@@ -442,6 +536,18 @@ class Poller(threading.Thread):
                     )
 
                 self.poll()
+
+            elif action == "add_port_forward":
+                self.add_port_forward(
+                    body.get("name", ""),
+                    body.get("external_port"),
+                    body.get("internal_ip", ""),
+                    body.get("internal_port"),
+                    body.get("protocol", "TCP"),
+                )
+
+            elif action == "delete_port_forward":
+                self.delete_port_forward(body.get("id"))
 
             elif action == "reboot":
                 if self.client is None:
@@ -528,6 +634,12 @@ class Handler(BaseHTTPRequestHandler):
                     poller.snapshot(),
                 ).encode(),
             )
+
+        elif path == "/api/portforwards":
+            try:
+                self._send(200, json.dumps(poller.get_port_forwards()).encode())
+            except Exception as e:
+                self._send(500, json.dumps({"error": f"{type(e).__name__}: {e}"}).encode())
 
         elif path in ("/", "/index.html"):
             self._send(

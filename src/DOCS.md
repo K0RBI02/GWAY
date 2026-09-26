@@ -32,6 +32,14 @@ The tile next to devices, CPU and memory shows the data used in the current peri
 - The counter starts again on `data_reset_day`. The first period starts when the add-on first sees the counter, so it only covers the time since then.
 - Hover over the tile to see when the current period started. `/api/state` shows the raw router value (`lte.total`) and the source used (`data.source`: `router` or `speed`).
 
+## Port forwarding
+
+The "Port forwarding" section lists existing rules and lets you add or delete them: name, external port, internal IP and port, and protocol (TCP or UDP).
+
+- This uses a different part of the router's API than the rest of GWAY (a JSON-based dialect, reverse-engineered from the router's own web interface), sent over the same encrypted transport.
+- Only tested against the router's mobile ("MBB") WAN interface, since this add-on targets 5G-only routers. Rules are always created against that interface.
+- The list is not polled continuously; it loads once when the page opens and refreshes after you add or delete a rule.
+
 ## Settings
 
 Click the gear icon next to the model name:
