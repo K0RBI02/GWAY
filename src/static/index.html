@@ -111,7 +111,7 @@ th:first-child,td:first-child{width:100%;max-width:0}
 .pfform{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 20px}
 .pfform label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
 .pfform input,.pfform select{font:inherit;color:inherit;background:transparent;border:1.5px dashed var(--line);border-radius:12px;padding:8px 10px}
-.pfform input{width:9em}
+.pfform input{width:9em;max-width:none;margin-bottom:0}
 .pfform input[name="name"]{width:11em}
 .pfform button{align-self:flex-end}
 td.pfdel{width:1%}
@@ -199,12 +199,14 @@ button.rm:hover{border-style:solid;color:var(--ink)}
     <p class="empty" id="resvempty" data-t="noResv" hidden></p>
 
     <h2 data-t="portfw">Port forwarding</h2>
+    <!-- The label texts live in their own <span data-t>: applyLang() sets textContent on every [data-t] element,
+         which would otherwise wipe out the <input>/<select> inside the label. -->
     <form class="pfform" id="pfform">
-      <label data-t="pfName">Name<input name="name" maxlength="32" required></label>
-      <label data-t="pfExt">External port<input name="external_port" type="number" min="1" max="65535" required></label>
-      <label data-t="pfIp">Internal IP<input name="internal_ip" required pattern="^(\d{1,3}\.){3}\d{1,3}$"></label>
-      <label data-t="pfInt">Internal port<input name="internal_port" type="number" min="1" max="65535" required></label>
-      <label data-t="pfProto">Protocol<select name="protocol"><option>TCP</option><option>UDP</option></select></label>
+      <label><span data-t="pfName">Name</span><input name="name" maxlength="32" required></label>
+      <label><span data-t="pfExt">External port</span><input name="external_port" type="number" min="1" max="65535" required></label>
+      <label><span data-t="pfInt">Internal IP</span><input name="internal_ip" required pattern="^(\d{1,3}\.){3}\d{1,3}$"></label>
+      <label><span data-t="pfIntPort">Internal port</span><input name="internal_port" type="number" min="1" max="65535" required></label>
+      <label><span data-t="pfProto">Protocol</span><select name="protocol"><option>TCP</option><option>UDP</option></select></label>
       <button type="submit" data-t="pfAdd">Add</button>
     </form>
     <div class="scroll">
@@ -257,7 +259,7 @@ const I = {
     devices: "Geräte", search: "Name, IP oder MAC suchen", searchAria: "Geräte durchsuchen",
     thDev: "Gerät", thIp: "IP-Adresse", thMac: "MAC-Adresse", thConn: "Verbindung", thStatus: "Status",
     resv: "Feste IP-Adressen", noResv: "Keine Reservierungen eingerichtet.", unnamed: "(ohne Namen)", offline: "(gerade offline)", active: "aktiv",
-    portfw: "Portweiterleitung", pfName: "Name", pfExt: "Externer Port", pfInt: "Interne IP", pfInt2: "Interne Adresse", pfProto: "Protokoll", pfAdd: "Hinzufügen",
+    portfw: "Portweiterleitung", pfName: "Name", pfExt: "Externer Port", pfInt: "Interne IP", pfIntPort: "Interner Port", pfInt2: "Interne Adresse", pfProto: "Protokoll", pfAdd: "Hinzufügen",
     noPf: "Keine Portweiterleitungen eingerichtet.", pfDel: "Löschen", pfConfirmDel: n => `Portweiterleitung "${n}" löschen?`, pfFailed: "Regel konnte nicht angelegt werden. Port schon belegt?",
     history: "Verlauf wird aufgebaut …", last: d => `Letzte ${d}`,
     dS: n => `${n} Sek.`, dM: n => `${n} Min.`, dH: (h, m) => `${h} Std. ${m} Min.`, dD: (d, h) => `${d} Tg. ${h} Std.`,
@@ -289,7 +291,7 @@ const I = {
     devices: "Devices", search: "Search name, IP or MAC", searchAria: "Search devices",
     thDev: "Device", thIp: "IP address", thMac: "MAC address", thConn: "Connection", thStatus: "Status",
     resv: "Static IP addresses", noResv: "No reservations set up.", unnamed: "(unnamed)", offline: "(currently offline)", active: "active",
-    portfw: "Port forwarding", pfName: "Name", pfExt: "External port", pfInt: "Internal IP", pfInt2: "Internal address", pfProto: "Protocol", pfAdd: "Add",
+    portfw: "Port forwarding", pfName: "Name", pfExt: "External port", pfInt: "Internal IP", pfIntPort: "Internal port", pfInt2: "Internal address", pfProto: "Protocol", pfAdd: "Add",
     noPf: "No port forwarding rules set up.", pfDel: "Delete", pfConfirmDel: n => `Delete port forwarding rule "${n}"?`, pfFailed: "Could not add the rule. Port already in use?",
     history: "Building history …", last: d => `Last ${d}`,
     dS: n => `${n} sec`, dM: n => `${n} min`, dH: (h, m) => `${h} h ${m} min`, dD: (d, h) => `${d} d ${h} h`,
@@ -522,14 +524,14 @@ $("#pfform").addEventListener("submit", e => {
   const f = new FormData(e.target);
   const body = {
     action: "add_port_forward",
-    name: f.get("name").trim(),
+    name: String(f.get("name") || "").trim(),
     external_port: f.get("external_port"),
-    internal_ip: f.get("internal_ip").trim(),
+    internal_ip: String(f.get("internal_ip") || "").trim(),
     internal_port: f.get("internal_port"),
-    protocol: f.get("protocol"),
+    protocol: f.get("protocol") || "TCP",
   };
   const btn = e.target.querySelector("button[type=submit]");
-  act(body, btn, t("pfFailed")).then(() => { e.target.reset(); portForwards(); });
+  act(body, btn, t("pfFailed")).then(ok => { if (ok) e.target.reset(); portForwards(); });
 });
 
 function render(d) {
@@ -554,13 +556,17 @@ async function load() {
   catch { $("#dot").classList.add("err"); $("#statustext").textContent = t("e_addon"); }
 }
 
+// Resolves to true if the action succeeded, false otherwise
 async function act(body, btn, failMsg) {
   btn.disabled = true;
+  let ok = false;
   try {
     const r = await fetch("api/action", {method: "POST", headers: {"Content-Type": "application/json", "X-Requested-With": "router-ui"}, body: JSON.stringify(body)});
+    ok = r.ok;
     if (!r.ok) alert((await r.json().catch(() => ({}))).error || failMsg || t("failed"));
   } catch { alert(t("noAddon")); }
   btn.disabled = false; load();
+  return ok;
 }
 
 function toggleBand(id, band, key) {
@@ -629,6 +635,7 @@ $$("#settings [data-set]").forEach(b => b.addEventListener("click", () => {
 
 function applyLang() {
   document.documentElement.lang = S.lang;
+  // Only put [data-t] on elements that contain nothing but text (textContent replaces all children)
   $$("[data-t]").forEach(e => e.textContent = t(e.dataset.t));
   $$("[data-t-ph]").forEach(e => e.placeholder = t(e.dataset.tPh));
   $$("[data-t-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.tAria)));

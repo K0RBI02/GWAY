@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1
+- Fixed the port forwarding form: the "Add" button did nothing. The language handler replaced the content of the form labels with plain text, which removed the input fields and the protocol selector from the page. The label texts now sit in their own element, so the fields stay
+- The form is only cleared after the rule was actually added; if the router rejects it, your input is kept
+- The form reads its values defensively and no longer fails silently on missing fields
+- Port forwarding: new "Internal port" label text (was shared with "Internal IP" before)
+
 ## 0.8.0
 - New "Port forwarding" section: shows existing rules and lets you add and delete them
 - Add a rule with a name, external port, internal IP and port, and protocol (TCP/UDP)
