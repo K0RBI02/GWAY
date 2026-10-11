@@ -1,2 +1,2 @@
-tplinkrouterc6u==5.35.1
+tplinkrouterc6u==5.36.0
 paho-mqtt>=2.1,<3
