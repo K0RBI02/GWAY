@@ -1,0 +1,51 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: GWAY version
+      placeholder: "0.8.1"
+    validations:
+      required: true
+  - type: input
+    id: router
+    attributes:
+      label: Router model and firmware
+      placeholder: "Archer NX500, firmware …"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web interface
+        - Mobile layout
+        - Traffic / data usage
+        - Wi-Fi switches / reboot
+        - Port forwarding
+        - MQTT / Home Assistant entities
+        - Installation / add-on
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Add-on log
+      description: Relevant lines from the add-on log. Remove passwords and public IP addresses.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Please hide personal data.

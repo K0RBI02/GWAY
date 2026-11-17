@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an idea for GWAY
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: Describe the situation or problem, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: How could GWAY help with that?
+  - type: input
+    id: router
+    attributes:
+      label: Router model
+      description: Only needed if the feature depends on the router.

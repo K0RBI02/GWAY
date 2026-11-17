@@ -7,3 +7,11 @@ firewall_probe.txt
 test_*.py
 probe_*.py
 debug_*.py
+
+# Local development
+.venv/
+.env
+data/
+.ruff_cache/
+.idea/
+.vscode/

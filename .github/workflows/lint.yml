@@ -4,6 +4,13 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   addon-linter:
     name: Add-on linter
@@ -15,14 +22,16 @@ jobs:
           path: "./src"
 
   python:
-    name: Python syntax
+    name: Python checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: python -m py_compile src/server.py
+      - run: python -m py_compile src/*.py
+      - run: pip install ruff
+      - run: ruff check src
 
   docker:
     name: Docker build
